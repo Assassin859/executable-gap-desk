@@ -1,0 +1,26 @@
+{
+  "NVDAon": {
+    "openState": true,
+    "marketStatus": "regular",
+    "reasonCode": "TRADING",
+    "reasonMsg": null,
+    "nextOpenTime": 1790712060000,
+    "nextCloseTime": 1790711940000
+  },
+  "NVDAx": {
+    "openState": true,
+    "marketStatus": null,
+    "reasonCode": "TRADING",
+    "reasonMsg": null,
+    "nextOpenTime": null,
+    "nextCloseTime": null
+  },
+  "NVDAB": {
+    "openState": true,
+    "marketStatus": null,
+    "reasonCode": "TRADING",
+    "reasonMsg": null,
+    "nextOpenTime": null,
+    "nextCloseTime": null
+  }
+}

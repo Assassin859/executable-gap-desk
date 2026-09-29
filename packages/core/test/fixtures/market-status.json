@@ -1,0 +1,15 @@
+{
+  "marketStatus": "regular",
+  "openState": true,
+  "reasonCode": null,
+  "reasonMsg": null,
+  "nextOpen": "2026-09-29T20:01:00Z",
+  "nextClose": "2026-09-29T19:59:00Z",
+  "nextOpenTime": 1790712060000,
+  "nextCloseTime": 1790711940000,
+  "offhours": {
+    "openState": false,
+    "nextOpenTime": 1790985900000,
+    "nextCloseTime": 1791158100000
+  }
+}
