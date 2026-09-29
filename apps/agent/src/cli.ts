@@ -8,16 +8,20 @@ import pc from "picocolors";
 import {
   ApiError,
   CHAIN_ID,
+  DEFAULT_LADDER,
   MissingCredentialsError,
+  QUOTE_REASON_TEXT,
   buildMatrix,
   credentialsFromEnv,
   getAssetStatus,
+  getLadder,
   getMarketSession,
   loadRegistry,
   resolve,
   signedGet,
   sortByGap,
   type MatrixFlag,
+  type QuoteFail,
   type SessionName,
 } from "@gapdesk/core";
 import { dateTimes, duration, pct, platformLabel, usd } from "./format";
@@ -196,6 +200,63 @@ program
       table.push([platformLabel(v.platform), v.symbol + mark, v.address, v.multiplier.toFixed(6)]);
     }
     console.log(`${pc.bold(res.ticker)} ${pc.dim(`(matched by ${res.matchedBy})`)}  ${res.venues.length} venue(s) on BSC`);
+    console.log(table.toString());
+  });
+
+function parseSizes(values: string[] | undefined, fallback: readonly number[]): number[] {
+  if (!values?.length) return [...fallback];
+  const sizes = values.join(",").split(/[\s,]+/).filter(Boolean).map(Number);
+  const bad = sizes.find((n) => !Number.isFinite(n) || n <= 0);
+  if (bad !== undefined) throw new Error(`Invalid --usd size: ${bad}`);
+  return [...new Set(sizes)].sort((a, b) => a - b);
+}
+
+function quoteFailText(q: QuoteFail): string {
+  return `${QUOTE_REASON_TEXT[q.reason]} ${pc.dim(`(${q.code ?? "?"})`)}`;
+}
+
+program
+  .command("quote")
+  .description("Executable quotes (USDT -> token) for one venue at one or more sizes")
+  .argument("<symbol>", "venue symbol or address, e.g. NVDAB, AAPLon, MSTRx")
+  .option("--usd <sizes...>", "USD sizes, e.g. 25 100 500", ["25", "100", "500"])
+  .option("--json", "print JSON")
+  .action(async (symbol: string, opts: { usd?: string[]; json?: boolean }) => {
+    const sizes = parseSizes(opts.usd, DEFAULT_LADDER);
+    const res = resolve(await loadRegistry(), symbol);
+    if (!res?.match) throw new Error(`"${symbol}" is not a venue symbol or address. Try \`gap resolve ${symbol}\`.`);
+    const venue = res.match;
+    const { rows } = await buildMatrix({ scope: "all", tickers: [res.ticker], withSession: false });
+    const row = rows.find((r) => r.address === venue.address);
+    const ladder = await getLadder(venue, sizes, { multiplier: row?.multiplier, reference: row?.reference });
+    if (opts.json) {
+      console.log(JSON.stringify({ ...ladder, reference: row?.reference ?? null, displayedPerShare: row?.perShare ?? null }, null, 2));
+      return;
+    }
+    console.log(
+      `${pc.bold(venue.symbol)} ${pc.dim(platformLabel(venue.platform))}  displayed ${usd(row?.perShare)}/share  reference ${usd(row?.reference)}  ${pc.dim(`multiplier ${row?.multiplier?.toFixed(6) ?? "?"}`)}`,
+    );
+    const table = new Table({
+      head: ["Size", "Mode / vendor", "Tokens out", "Per share", "Exec gap", "Ladder impact", "API impact (raw)", "Net fee", "Route"],
+      colAligns: ["right", "left", "right", "right", "right", "right", "right", "right", "left"],
+    });
+    for (const q of ladder.quotes) {
+      if (!q.ok) {
+        table.push([usd(q.usd, 0), { colSpan: 8, content: pc.red(quoteFailText(q)) }]);
+        continue;
+      }
+      table.push([
+        usd(q.usd, 0),
+        `${q.executionMode ?? "?"} / ${q.vendorName ?? "?"}`,
+        q.tokensOut.toFixed(6),
+        usd(q.fillPerShare),
+        pct(q.executableGapPct),
+        pct(ladder.impactPct[q.usd]),
+        q.vendorPriceImpact === null ? pc.dim("n/a") : pc.dim(String(q.vendorPriceImpact)),
+        usd(q.networkFeeUsd, 3),
+        q.route.join(" > "),
+      ]);
+    }
     console.log(table.toString());
   });
 

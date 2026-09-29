@@ -61,8 +61,11 @@ export interface QuoteOk extends QuoteBase {
   /** Token symbols along the route, e.g. USDT > USD1 > WBNB > NVDAB. */
   route: string[];
   protocols: string[];
-  /** API `priceImpactPercent`, in percent (0.0021 = 0.0021%); units are undocumented, inferred from ladders. */
-  vendorPriceImpactPct: number | null;
+  /**
+   * API `priceImpactPercent`, raw. Units are undocumented and it does not track measured ladder
+   * impact under either reading (see DX_LOG), so the gate uses `ladderImpact` instead.
+   */
+  vendorPriceImpact: number | null;
   /** API `tradeFee`: tracks gas limit x gas price in USD (~$0.02 at any size), so it is the network fee, not a trading fee. */
   networkFeeUsd: number | null;
   /** API `estimateGasFee`: a gas limit in units (e.g. 450000), not a fee. */
@@ -151,7 +154,7 @@ export function parseQuote(ctx: ParseQuoteContext, data: unknown): ExecQuote {
     vendorName: r.vendorName,
     route: routeSymbols(r),
     protocols: (r.dexRouterList ?? []).map((h) => h.dexProtocol?.dexName ?? "?"),
-    vendorPriceImpactPct: r.priceImpactPercent,
+    vendorPriceImpact: r.priceImpactPercent,
     networkFeeUsd: r.tradeFee,
     gasLimit: r.estimateGasFee,
     quoteId: r.quoteId,
