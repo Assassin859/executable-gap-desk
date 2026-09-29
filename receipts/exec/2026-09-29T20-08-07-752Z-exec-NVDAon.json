@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "2026-09-29T20-08-07-752Z-exec-NVDAon",
+  "kind": "trade",
+  "createdAt": "2026-09-29T20:08:07.752Z",
+  "mode": "dry-run",
+  "outcome": "REFUSED",
+  "refusal": {
+    "code": "GATE_NOT_GO",
+    "message": "Gate verdict is CAUTION, and only GO executes. Outside the US regular session (postmarket): liquidity is thinner and quotes move faster."
+  },
+  "symbol": "NVDAon",
+  "venue": {
+    "ticker": "NVDA",
+    "platform": "ondo",
+    "address": "0xa9ee28c80f960b889dfbd1902055218cba016f75"
+  },
+  "usd": 6,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "CAUTION",
+    "session": "postmarket",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is +0.00% off the stock ($227.42 per share vs the stock at $227.42)."
+      },
+      {
+        "code": "OFF_HOURS",
+        "severity": "caution",
+        "message": "Outside the US regular session (postmarket): liquidity is thinner and quotes move faster."
+      }
+    ],
+    "reference": 227.42,
+    "displayedGapPct": 0.000026382903878412847,
+    "executableGapPct": 0.000015899457824207752,
+    "fillPerShare": 227.42361585469837,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.02633730937289721,
+    "fillPerShare": 227.42361585469837,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "NVDAon"
+    ],
+    "vendorPriceImpact": 0.0006088579,
+    "networkFeeUsd": 0.01737073,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": null,
+  "approval": null,
+  "swap": null,
+  "simulation": null,
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T20:08:07.753Z",
+      "step": "gate",
+      "detail": "NVDAon at $6"
+    },
+    {
+      "at": "2026-09-29T20:08:08.899Z",
+      "step": "refused",
+      "detail": "GATE_NOT_GO: Gate verdict is CAUTION, and only GO executes. Outside the US regular session (postmarket): liquidity is thinner and quotes move faster."
+    }
+  ],
+  "side": "buy",
+  "via": "contract-call"
+}

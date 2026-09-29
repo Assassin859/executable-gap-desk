@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "2026-09-29T20-08-03-904Z-exec-AAPLB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T20:08:03.904Z",
+  "mode": "dry-run",
+  "outcome": "REFUSED",
+  "refusal": {
+    "code": "GATE_NOT_GO",
+    "message": "Gate verdict is CAUTION, and only GO executes. Outside the US regular session (postmarket): liquidity is thinner and quotes move faster."
+  },
+  "symbol": "AAPLB",
+  "venue": {
+    "ticker": "AAPL",
+    "platform": "bstocks",
+    "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a"
+  },
+  "usd": 1,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "CAUTION",
+    "session": "postmarket",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is +0.01% off the stock ($329.58 per share vs the stock at $329.55)."
+      },
+      {
+        "code": "OFF_HOURS",
+        "severity": "caution",
+        "message": "Outside the US regular session (postmarket): liquidity is thinner and quotes move faster."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 329.554,
+    "displayedGapPct": 0.00044302299471411365,
+    "executableGapPct": 0.00009114990991579396,
+    "fillPerShare": 329.58403881741236,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.003032296290781431,
+    "fillPerShare": 329.58403881741236,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "AAPLB"
+    ],
+    "vendorPriceImpact": 0.0003807262,
+    "networkFeeUsd": 0.02212298,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": null,
+  "approval": null,
+  "swap": null,
+  "simulation": null,
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T20:08:03.905Z",
+      "step": "gate",
+      "detail": "AAPLB at $1"
+    },
+    {
+      "at": "2026-09-29T20:08:05.628Z",
+      "step": "refused",
+      "detail": "GATE_NOT_GO: Gate verdict is CAUTION, and only GO executes. Outside the US regular session (postmarket): liquidity is thinner and quotes move faster."
+    }
+  ],
+  "side": "buy",
+  "via": "contract-call"
+}

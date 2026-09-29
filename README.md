@@ -20,8 +20,22 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 | 2 | Executable quotes and the GO / CAUTION / BLOCK gate | done |
 | 3 | Guarded mainnet fills via `baw` with receipts | done |
 | 4 | Web desk: radar, Truth Cards, proof ledger, DX log | done |
-| 5 | Agentic Wallet and BNB Agent Studio integrations: live dashboard (5.1), gated wallet trading (5.2), the x402 buyer (5.3), the B402 seller with ERC-8004 identity (5.4), and the MCP server, Studio agent and first paid sale (5.5) done; proof-page polish next | in progress |
+| 5 | Agentic Wallet and BNB Agent Studio integrations: CI (5.1), gated wallet trading (5.2), the x402 buyer (5.3), the B402 seller with ERC-8004 identity (5.4), the MCP server, Studio agent and first paid sale (5.5), and all of it on `/proof` (5.6) | done |
 | 6 | Ship: polish, demo, DX report | planned |
+
+## For judges
+
+Each line is one integration and where to see it working. Every on-chain claim links to BscScan from [`/proof`](https://executable-gap-desk.vercel.app/proof).
+
+- **The desk:** [the radar](https://executable-gap-desk.vercel.app) shows every BSC tokenized stock with displayed vs executable gap; [a Truth Card](https://executable-gap-desk.vercel.app/t/MSTR) quotes each venue live and shows why MSTRx's displayed discount is a BLOCK.
+- **Proof ledger:** [`/proof`](https://executable-gap-desk.vercel.app/proof) lists the mainnet fills, wallet market orders, refusals, x402 purchases and the sale, and the ERC-8004 registration, each from a committed receipt.
+- **Agentic Wallet, trading:** gated buys through `baw contract-call` and gated sells through `baw market-order`, every fill within 0.02% of its gated quote ([Guarded execution](#guarded-execution), [Wallet trading](#wallet-trading-agentic-wallet-market-and-limit-orders)).
+- **Agentic Wallet, paying over x402:** paid CoinMarketCap data with `baw x402-payment`, behind per-call and daily caps ([Paying for data](#paying-for-data-over-x402-agentic-wallet)).
+- **Selling over x402 (B402):** `curl -i https://executable-gap-desk.vercel.app/x402/gap/NVDA` answers 402 with U and USD1 requirements; one paid call settled through B402 into the Agentic Wallet ([Selling the gate](#selling-the-gate-over-x402-b402)).
+- **Agent identity:** ERC-8004 agent `360456` on BSC mainnet, whose `agentURI` is the [agent card](https://executable-gap-desk.vercel.app/.well-known/agent-card.json) ([Agent identity](#agent-identity-erc-8004)).
+- **MCP:** five read-only tools for Cursor or any MCP client, set up by [`.cursor/mcp.json`](.cursor/mcp.json) ([MCP server](#mcp-server-cursor)).
+- **BNB Agent Studio:** a `bag init` project serving the gate over A2A, MCP and x402 with `bag dev` ([Studio agent](#bnb-agent-studio-agent)).
+- **Developer experience:** 42 reproducible findings with suggested fixes, on the [DX page](https://executable-gap-desk.vercel.app/dx) and in [`docs/DX_LOG.md`](docs/DX_LOG.md).
 
 ## Quickstart
 
@@ -258,7 +272,7 @@ Proof, 18:52 UTC ([receipt](receipts/studio/2026-09-29T18-52-57-725Z-bag-dev-pro
 
 - **Radar** (`/`): every BSC tokenized stock from the full sweep, with the displayed gap next to the executable one and the verdict. Two example cards show the traps (a displayed discount with no liquidity, and a normal-looking price that fills hundreds of percent high). Search, sort, a "listed on 2+ platforms" filter and a hide-BLOCK toggle (off by default, so the traps stay visible). A badge shows the live US session and the countdown to the next open or close.
 - **Truth Card** (`/t/NVDA`): the snapshot row for each venue, then fresh $25 quotes through the gate with plain-English reasons and the best venue. "Add $100 / $500" measures price impact.
-- **Proof** (`/proof`): the mainnet fills and refusals above, built from [`receipts/exec/`](receipts/exec/) with BscScan links.
+- **Proof** (`/proof`): the mainnet fills, wallet market orders, limit attempts and refusals from [`receipts/exec/`](receipts/exec/); the x402 sale and B402 self-test; x402 purchases from [`receipts/x402/`](receipts/x402/); and the ERC-8004 registration. All with BscScan links.
 - **DX log** (`/dx`): the entries of [`docs/DX_LOG.md`](docs/DX_LOG.md), highest severity first.
 
 The radar reads a committed snapshot ([`apps/web/data/snapshot.json`](apps/web/data/snapshot.json), about 520 KB). Live Truth Card quotes use the keyed API from the server, with the key held in Vercel environment variables, cached for 60 s and limited to 12 live checks per minute per visitor. The functions run in Mumbai (`bom1`) because the quote API refuses US regions with `40304` ([DX #29](docs/DX_LOG.md#29-quote-answers-40304-to-us-cloud-regions-and-the-docs-dont-list-it-for-trading)).
@@ -291,9 +305,17 @@ flowchart LR
   exec --> baw[Agentic Wallet baw]
   baw --> bsc[BSC mainnet]
   bsc --> exec
-  exec --> receipts[receipts/exec]
+  exec --> receipts[receipts]
   gate --> web[Web desk]
   receipts --> web
+  gate --> mcp["MCP server (stdio)"]
+  gate --> x402Routes["/x402 paid routes"]
+  x402Routes -->|"verify, settle"| b402[B402 facilitator]
+  b402 -->|U| baw
+  baw -->|"x402-payment"| sellers[Other x402 sellers]
+  baw -->|"register(agentURI)"| erc8004[ERC-8004 registry]
+  erc8004 -->|agentURI| card[Agent card]
+  studio[Studio agent via bag dev] -->|"/api/check"| web
 ```
 
 - **Registry** (`packages/core/src/registry.ts`): BSC venues from the public RWA list, platform by `type` (1 Ondo, 2 xStocks, 3 bStocks), grouped by ticker.
@@ -399,6 +421,11 @@ Both positions from the buys above were closed in full, each sold within 0.1% of
 | 15:25:13 | NVDAB | $1.50 | live | Same: a four-hop LiquidMesh route (USDT, BTCB, USDC, WBNB, NVDAB) failed its own 0.5% minimum. The exact approval had gone through; the swap never did |
 | 15:25:31 | NVDAB | $1.50 | live | Same route, same simulated revert |
 | 17:35:25 | x402: Stock Agent NVDA report | 0.1 USDT | dry run | `NO_PAYABLE_OPTION`: the wallet held only USDT, and its `READY_TO_SIGN` USDT option still needed a Permit2 approval ([DX #34](docs/DX_LOG.md#34-x402-payment-preview-marks-a-permit2-option-ready_to_sign-while-needapprovefirst-is-true)) |
+| 20:08:00 | NVDAB | $1 | dry run | Off-hours cap: US after-hours, so the verdict is capped at CAUTION even though the quote fills +0.06% vs the stock (`GATE_NOT_GO`, `OFF_HOURS`) |
+| 20:08:03 | AAPLB | $1 | dry run | Same: after-hours, CAUTION at +0.01% vs the stock |
+| 20:08:07 | NVDAon | $6 | dry run | Same: after-hours, CAUTION at 0.00% vs the stock |
+
+NVDAB and AAPLB are the tokens that filled during the regular session above. The gate refuses these three after 20:00 UTC only because of the session: after-hours liquidity is thinner, so nothing better than CAUTION is allowed, and only GO executes.
 
 ## Developer experience
 

@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "id": "2026-09-29T20-08-00-528Z-exec-NVDAB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T20:08:00.528Z",
+  "mode": "dry-run",
+  "outcome": "REFUSED",
+  "refusal": {
+    "code": "GATE_NOT_GO",
+    "message": "Gate verdict is CAUTION, and only GO executes. Outside the US regular session (postmarket): liquidity is thinner and quotes move faster."
+  },
+  "symbol": "NVDAB",
+  "venue": {
+    "ticker": "NVDA",
+    "platform": "bstocks",
+    "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"
+  },
+  "usd": 1,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "CAUTION",
+    "session": "postmarket",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is +0.06% off the stock ($227.55 per share vs the stock at $227.42)."
+      },
+      {
+        "code": "OFF_HOURS",
+        "severity": "caution",
+        "message": "Outside the US regular session (postmarket): liquidity is thinner and quotes move faster."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 227.42,
+    "displayedGapPct": 0.0004397150646382145,
+    "executableGapPct": 0.0005881530297121008,
+    "fillPerShare": 227.5537577620171,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.004391148672892799,
+    "fillPerShare": 227.5537577620171,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "BSC_ETH",
+      "USDC",
+      "NVDAB"
+    ],
+    "vendorPriceImpact": 0.0011967911,
+    "networkFeeUsd": 0.01928797,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": null,
+  "approval": null,
+  "swap": null,
+  "simulation": null,
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T20:08:00.529Z",
+      "step": "gate",
+      "detail": "NVDAB at $1"
+    },
+    {
+      "at": "2026-09-29T20:08:01.692Z",
+      "step": "refused",
+      "detail": "GATE_NOT_GO: Gate verdict is CAUTION, and only GO executes. Outside the US regular session (postmarket): liquidity is thinner and quotes move faster."
+    }
+  ],
+  "side": "buy",
+  "via": "contract-call"
+}

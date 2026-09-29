@@ -13,6 +13,7 @@ receipts/*
 !receipts/mcp/
 !receipts/studio/
 !receipts/x402-sales/
+!receipts/x402-onchain.json
 apps/studio/.studio/
 apps/studio/agentcore/.env.local
 *.log

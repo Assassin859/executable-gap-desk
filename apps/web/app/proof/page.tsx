@@ -1,31 +1,57 @@
 import type { Metadata } from "next";
 import { VerdictChip } from "@/components/VerdictChip";
-import { loadReceipts, REPO_URL } from "@/lib/content";
+import { loadB402Selftest, loadIdentity, loadOnchainAnnotations, loadReceipts, loadSales, loadX402Receipts, REPO_URL } from "@/lib/content";
 import { pct, shortHash, usd, utc } from "@/lib/format";
-import { buildLedger } from "@/lib/proof";
+import { buildLedger, buildX402Ledger, identityRow, selftestRow } from "@/lib/proof";
 
 export const metadata: Metadata = { title: "Proof ledger · Executable Gap Desk" };
 export const dynamic = "force-static";
 
 const WALLET = "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65";
+const DX = `${REPO_URL}/blob/main/docs/DX_LOG.md`;
+const DX_ANCHOR: Record<number, string> = {
+  37: "37-the-bnb-stock-agent-rejects-valid-agentic-wallet-u-payments-with-a-bare-payment_rejected",
+  38: "38-payment-response-has-a-different-shape-per-seller-coinmarketcaps-carries-no-transaction-hash",
+  41: "41-wallet-send-only-reaches-address-book-recipients-help-doesnt-say-so-and-no-cli-command-can-add-one",
+};
+
+function DxLink({ n }: { n: keyof typeof DX_ANCHOR }) {
+  return (
+    <a className="underline" href={`${DX}#${DX_ANCHOR[n]}`}>
+      DX #{n}
+    </a>
+  );
+}
+
+function TxLink({ tx }: { tx: { label: string; hash: string; url: string } }) {
+  return (
+    <a href={tx.url} className="block font-mono text-xs text-accent underline">
+      {tx.label} {shortHash(tx.hash)}
+    </a>
+  );
+}
 
 export default function ProofPage() {
   const ledger = buildLedger(loadReceipts());
   const fills = ledger.onChain.filter((r) => r.outcome === "FILLED" && r.kind === "trade");
+  const x402 = buildX402Ledger(loadX402Receipts(), loadSales(), loadOnchainAnnotations());
+  const identity = identityRow(loadIdentity());
+  const selftest = selftestRow(loadB402Selftest());
 
   return (
     <div className="space-y-8">
       <section className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">Proof ledger</h1>
         <p className="max-w-3xl text-muted">
-          Real BSC mainnet transactions placed by <span className="font-mono">gap exec</span> through the Binance Agentic Wallet{" "}
+          Real BSC mainnet activity of the Binance Agentic Wallet{" "}
           <a className="font-mono text-accent underline" href={`https://bscscan.com/address/${WALLET}`}>
             {shortHash(WALLET)}
           </a>
-          . Every trade, buy or sell, passed the gate (GO). Contract calls were simulated with an exact-amount approval; wallet market orders had to match the gated quote within 0.5%.
-          Refusals stop before anything is signed. Each row is a committed JSON receipt in{" "}
-          <a className="underline" href={`${REPO_URL}/tree/main/receipts/exec`}>
-            receipts/exec
+          : gated trades from <span className="font-mono">gap exec</span>, x402 payments it made and received, and its ERC-8004 registration. Every trade, buy or sell, passed the
+          gate (GO). Contract calls were simulated with an exact-amount approval; wallet market orders had to match the gated quote within 0.5%. Refusals stop before anything
+          is signed. Each row is a committed JSON receipt in{" "}
+          <a className="underline" href={`${REPO_URL}/tree/main/receipts`}>
+            receipts/
           </a>
           .
         </p>
@@ -152,6 +178,139 @@ export default function ProofPage() {
           ))}
         </ul>
       </section>
+
+      {(x402.sales.length > 0 || selftest) && (
+        <section className="space-y-2">
+          <h2 className="font-semibold">Selling over x402 (B402)</h2>
+          <p className="text-sm text-muted">
+            The desk&apos;s paid endpoints settle through Binance&apos;s B402 facilitator into the Agentic Wallet. B402 submits the U transfer and pays its gas.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {x402.sales.map((s) => (
+              <div key={s.tx.hash} className="rounded-lg border border-go/40 bg-panel p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono font-semibold">GET {new URL(s.endpoint).pathname}</span>
+                  <span className="text-go">PAID · HTTP {s.httpStatus}</span>
+                </div>
+                <p className="num mt-2 text-2xl font-semibold">
+                  {s.priceU} U<span className="text-sm font-normal text-muted"> settled {utc(s.settledAt)}</span>
+                </p>
+                <p className="num text-muted">
+                  block {s.block} · {Number(s.gasUsed).toLocaleString("en-US")} gas at {s.gasPriceGwei} gwei, paid by B402 {shortHash(s.submittedBy)}
+                </p>
+                {!s.independent && (
+                  <p className="mt-2 text-caution">
+                    Self-payment: the buyer was the Agentic Wallet itself ({shortHash(s.buyer)}), so no value changed hands. We couldn&apos;t fund a separate buyer because the
+                    wallet only sends to address-book entries (<DxLink n={41} />).
+                  </p>
+                )}
+                <div className="mt-2">
+                  <TxLink tx={s.tx} />
+                </div>
+              </div>
+            ))}
+            {selftest && (
+              <div className="rounded-lg border border-line bg-panel p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold">B402 self-test (verify only)</span>
+                  <span className={selftest.isValid ? "text-go" : "text-block"}>{selftest.isValid ? "isValid: true" : `invalid: ${selftest.invalidReason ?? "unknown"}`}</span>
+                </div>
+                <p className="mt-2 text-muted">
+                  A {selftest.amount} {selftest.token} authorization signed by the Agentic Wallet for {new URL(selftest.resource).pathname}, sent to B402 Verify and never
+                  settled, so nothing moved. It proves the onboarded payTo ({shortHash(selftest.payTo)}) is the wallet.
+                </p>
+                <p className="mt-1 text-muted">{utc(selftest.at)}</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {x402.purchases.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="font-semibold">Paying for data over x402</h2>
+          <p className="text-sm text-muted">
+            Paid calls to other agents through <span className="font-mono">baw x402-payment</span>, capped per call and per day. {x402.dryRuns} further dry runs stopped
+            before signing.
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-line">
+            <table className="w-full text-sm">
+              <thead className="bg-panel text-left text-xs uppercase tracking-wide text-muted">
+                <tr>
+                  <th className="px-3 py-2">Run</th>
+                  <th className="px-3 py-2">Seller</th>
+                  <th className="px-3 py-2">Paid with</th>
+                  <th className="px-3 py-2">Outcome</th>
+                  <th className="px-3 py-2">Settlement</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {x402.purchases.map((p) => (
+                  <tr key={p.id}>
+                    <td className="num whitespace-nowrap px-3 py-2 text-muted">{utc(p.createdAt)}</td>
+                    <td className="px-3 py-2">
+                      <span className="font-mono">{p.seller}</span>
+                      {!p.label.startsWith(p.seller) && <div className="text-xs text-muted">{p.label}</div>}
+                    </td>
+                    <td className="num px-3 py-2">{p.amount ? `${p.amount} ${p.token}` : "n/a"}</td>
+                    <td className="px-3 py-2">
+                      <span className={p.outcome === "PAID" ? "text-go" : "text-block"}>{p.outcome === "PAID" ? `PAID · HTTP ${p.httpStatus}` : "REJECTED"}</span>
+                      {p.outcome !== "PAID" && (
+                        <div className="text-xs text-muted">
+                          {p.error ?? "no reason given"}; nothing charged (<DxLink n={37} />)
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {p.tx ? (
+                        <>
+                          <TxLink tx={p.tx} />
+                          {p.txFoundOnchain && (
+                            <div className="text-xs text-muted">
+                              found in U transfer logs; the seller sent no tx (<DxLink n={38} />)
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-muted">none</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {identity && (
+        <section className="space-y-2">
+          <h2 className="font-semibold">Agent identity (ERC-8004)</h2>
+          <div className="rounded-lg border border-line bg-panel p-4 text-sm">
+            <p className="text-2xl font-semibold">
+              agent <span className="num">{identity.agentId}</span>
+              <span className="text-sm font-normal text-muted"> registered {utc(identity.registeredAt)}</span>
+            </p>
+            <p className="mt-1 text-muted">
+              In the IdentityRegistry{" "}
+              <a className="font-mono text-accent underline" href={`https://bscscan.com/address/${identity.registry}`}>
+                {shortHash(identity.registry)}
+              </a>
+              , owned by the Agentic Wallet {shortHash(identity.owner)}. Its agentURI is the{" "}
+              <a className="underline" href={identity.agentURI}>
+                agent card
+              </a>
+              , which names agent {identity.agentId} back.
+            </p>
+            <p className="num mt-1 text-muted">
+              block {identity.block} · {Number(identity.gasUsed).toLocaleString("en-US")} gas · {identity.gasCostBnb.toFixed(7)} BNB
+            </p>
+            <div className="mt-2">
+              <TxLink tx={identity.tx} />
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
