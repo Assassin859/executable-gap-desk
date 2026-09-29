@@ -35,6 +35,10 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 | 27 | 2026-09-29 | Trading docs | Low | `/swap` response is undocumented (`gas` vs `gasLimit`, duplicate fee fields, which contract to approve) |
 | 28 | 2026-09-29 | `baw` | Medium | `contract-call preview` returns token amounts as JSON numbers and loses precision |
 | 29 | 2026-09-29 | Trading API | Medium | `/quote` answers `40304` to US cloud regions; the docs don't list it for trading |
+| 30 | 2026-09-29 | `baw` | High | `market-order swap` executes at once, with no preview or dry run |
+| 31 | 2026-09-29 | `baw` | High | `market-order swap` returns an `orderId` one lower than the stored order, and no status |
+| 32 | 2026-09-29 | `baw` / Wallet backend | High | `limit-order buy` on bStocks fails with "Raw limit orders are not supported. (2)"; undocumented |
+| 33 | 2026-09-29 | `baw` | Medium | bStocks balances differ between `wallet balance`, `balanceOf` and `Transfer` amounts |
 
 ---
 
@@ -287,3 +291,31 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 - **Expected:** the trading docs to say which regions the aggregator refuses, and a specific code for "region not supported for tokenized stocks", like `40301`.
 - **Actual:** `40304` is only listed under the DeFi endpoints (docs line 4305) as a catch-all "compliance rule not covered by a more specific code". Nothing in the trading or RWA sections says it can hit `/quote`, or that it depends on the server's region. A client that maps errors per venue shows every venue as untradeable, which is wrong: the venues are fine, the caller's region isn't. We pinned the functions to `bom1` and made the web desk report a region refusal as its own error, not as three BLOCKs.
 - **Suggested fix:** list the IP compliance codes for the trading endpoints, name the affected regions for tokenized stocks, and use `40301` (region) for region blocks so clients can tell them apart from account or address compliance.
+
+## 30. `market-order swap` executes at once, with no preview or dry run
+
+- **Repro:** `baw market-order swap --binanceChainId 56 --fromToken <AAPLB> --toToken <USDT> --fromTokenQty 0.002857883746551181 --slippage 0.5 --mev true --gasLevel MEDIUM --json` (baw 1.10.0, 2026-09-29 17:05 UTC). It sold the position straight away.
+- **Expected:** the same two-step flow as `contract-call` (`preview`, then `execute --requestId`), or at least a `--dry-run`.
+- **Actual:** there is no preview, no confirmation and no simulation step. `market-order quote` is a separate call, so nothing ties the executed price to the quoted one: the swap can run at a different price than the quote you just checked, and only `--slippage` bounds it. An agent that calls `swap` to "see what happens" has traded. We run the gate and the wallet's own `market-order quote` first (within 0.5% of the gated quote, inside the CAUTION band vs the stock), then ask for a typed `yes`, then call `swap`.
+- **Suggested fix:** add `market-order preview` returning a `requestId` bound to the quoted amounts, have `swap` accept it, and document that `swap` without it executes immediately.
+
+## 31. `market-order swap` returns an `orderId` one lower than the stored order, and no status
+
+- **Repro:** the swap above printed `{"orderId": "26092900001925734301"}`. `baw market-order list --orderId 26092900001925734301` returned an empty list; `baw market-order list --fromToken <AAPLB> --toToken <USDT>` showed the order as `26092900001925734302`, `status: "FINISHED"`, with its `txHash`. It happened again on the next sell: swap `…744435`, list `…744436` (receipts `receipts/exec/2026-09-29T17-05-48-637Z-exec-AAPLB.json` and `…17-11-17-799Z-exec-NVDAB.json`).
+- **Expected:** the swap returns the id that `list --orderId` finds, plus an initial status.
+- **Actual:** an agent polling by the returned id never sees its order and times out, even though it filled within seconds. Our first live sell was recorded as `PENDING / ORDER_TIMEOUT` for this reason. We now fall back to listing by pair from 2 minutes before the swap and matching `fromTokenQty`, keep the swap's id in the receipt as `swapResponseOrderId`, and added `gap reconcile` to settle an order after the fact from its transaction's `Transfer` logs. Both ids are 20-digit integers, which is also above 2^53 (see #28).
+- **Suggested fix:** return the stored order id as a string, with `status` and, once known, `txHash`.
+
+## 32. `limit-order buy` on bStocks fails with "Raw limit orders are not supported. (2)"; undocumented
+
+- **Repro:** `baw limit-order buy --binanceChainId 56 --fromToken <USDT> --toToken <AAPLB> --fromTokenQty 1 --triggerPrice 324.845557 --slippage 0.5 --json`, AAPLB GO at the time (2026-09-29 17:11 UTC, receipt `receipts/exec/2026-09-29T17-11-49-108Z-limit-AAPLB.json`). The wallet's market price was $331.34, so the trigger was 2% under it.
+- **Expected:** a strategy id, or a documented reason why this token can't take limit orders.
+- **Actual:** `success: false` with "Raw limit orders are not supported. (2)". The string is not in the CLI package, so it comes from the backend. Neither the wallet skill nor `baw limit-order buy --help` says which tokens support limit orders, and "Raw" isn't explained (most likely RWA, i.e. tokenized stocks). Nothing was placed. We couldn't check Ondo: at the $1 we could afford, the aggregator refuses AAPLon below its venue minimum (`40375`, see #11). Our executor now records a `success: false` answer from the wallet as `REFUSED / WALLET_REJECTED` (nothing placed), and keeps timeouts or unreadable replies as `FAILED`.
+- **Suggested fix:** document which asset classes support limit orders, return a specific code for "limit orders not available for tokenized stocks", and expose it before placement (for example on the token in `wallet balance` or through a `limit-order quote`).
+
+## 33. bStocks balances differ between `wallet balance`, `balanceOf` and `Transfer` amounts
+
+- **Repro:** after buying AAPLB, `baw wallet balance` showed 0.0028596, `balanceOf` on the token contract returned 0.0028579, and the sell's `Transfer` log moved 0.0028562: about 0.06% apart at each step.
+- **Expected:** one balance per token, or documentation of how the token's accounting scales.
+- **Actual:** the three figures differ by a factor of about 1.0006 each. A sell sized from `wallet balance` asks for more than the wallet holds on chain. We size every sell from `balanceOf`, read the real amount sold from the `Transfer` log, and price per share from the `Transfer` amount. The fill then matches the quote to within 0.0001%.
+- **Suggested fix:** have `wallet balance` report the on-chain `balanceOf`, and document the bStocks token's scaling (it looks like a rebasing or share-index token) so clients know which figure a transfer will use.

@@ -39,6 +39,7 @@ export interface ChainReader {
   balance(token: string, owner: string): Promise<bigint>;
   allowance(token: string, owner: string, spender: string): Promise<bigint>;
   waitForReceipt(hash: string, timeoutMs?: number): Promise<TransactionReceipt>;
+  decimals?(token: string): Promise<number>;
 }
 
 export function createChainReader(client: PublicClient = bscClient()): ChainReader {
@@ -51,6 +52,8 @@ export function createChainReader(client: PublicClient = bscClient()): ChainRead
       client.readContract({ address: token as Address, abi: erc20Abi, functionName: "allowance", args: [owner as Address, spender as Address] }),
     waitForReceipt: (hash, timeoutMs = 120_000) =>
       client.waitForTransactionReceipt({ hash: hash as Hex, timeout: timeoutMs, pollingInterval: 1_500 }),
+    decimals: async (token) =>
+      isNative(token) ? 18 : Number(await client.readContract({ address: token as Address, abi: erc20Abi, functionName: "decimals" })),
   };
 }
 

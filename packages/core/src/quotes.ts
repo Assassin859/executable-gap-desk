@@ -39,19 +39,27 @@ export const QUOTE_REASON_TEXT: Readonly<Record<QuoteReason, string>> = {
   UNKNOWN_ERROR: "quote failed",
 };
 
+export type Side = "buy" | "sell";
+
 interface QuoteBase {
   symbol: string;
   address: string;
+  /** Buy: USDT paid. Sell: USDT received. */
   usd: number;
   ts: number;
   source: "binance-aggregator";
+  /** Absent means "buy" (USDT to token). */
+  side?: Side;
 }
 
 export interface QuoteOk extends QuoteBase {
   ok: true;
+  /** Stock tokens in the trade: received on a buy, sold on a sell. */
   tokensOut: number;
+  /** Sell only: stock tokens sold (same as `tokensOut`). */
+  tokensIn?: number;
   multiplier: number;
-  /** USDT paid per token and per underlying share (token / multiplier). */
+  /** USDT paid (buy) or received (sell) per token and per underlying share (token / multiplier). */
   fillPerToken: number;
   fillPerShare: number;
   reference: number | null;
@@ -167,7 +175,7 @@ export function parseQuote(ctx: ParseQuoteContext, data: unknown): ExecQuote {
   };
 }
 
-export function quoteFromError(ctx: ParseQuoteContext, err: ApiError): QuoteFail {
+export function quoteFromError(ctx: ParseQuoteContext, err: ApiError, side?: Side): QuoteFail {
   const reason = (err.code !== null && QUOTE_REASON_BY_CODE[String(err.code)]) || "UNKNOWN_ERROR";
   return {
     symbol: ctx.venue.symbol,
@@ -175,11 +183,80 @@ export function quoteFromError(ctx: ParseQuoteContext, err: ApiError): QuoteFail
     usd: ctx.usd,
     ts: ctx.ts ?? Date.now(),
     source: "binance-aggregator",
+    ...(side === "sell" ? { side } : {}),
     ok: false,
     reason,
     code: err.code ?? err.httpStatus,
     message: err.message,
   };
+}
+
+export interface ParseSellContext extends Omit<ParseQuoteContext, "usd"> {
+  /** Exact stock-token amount sold, in base units. */
+  tokenQty: bigint;
+  decimals: number;
+}
+
+/** Token to USDT: `usd` is what you receive and `fillPerShare` the price received per underlying share. */
+export function parseSellQuote(ctx: ParseSellContext, data: unknown): ExecQuote {
+  const ts = ctx.ts ?? Date.now();
+  const tokensIn = Number(ctx.tokenQty) / 10 ** ctx.decimals;
+  const routes = QuoteResponseSchema.parse(data ?? []);
+  const r = bestRoute(routes);
+  const raw = r?.toTokenAmount ? BigInt(r.toTokenAmount) : 0n;
+  const usdtDecimals = r?.toToken?.decimal ?? USDT_DECIMALS;
+  const usd = Number(raw) / 10 ** usdtDecimals;
+  const base: QuoteBase = { symbol: ctx.venue.symbol, address: ctx.venue.address, usd, ts, source: "binance-aggregator", side: "sell" };
+  if (!r || raw <= 0n || !(tokensIn > 0)) {
+    return { ...base, ok: false, reason: "ZERO_OUTPUT", code: null, message: routes.length ? "Best route returns 0 USDT" : "No routes returned" };
+  }
+  const multiplier = ctx.multiplier && ctx.multiplier > 0 ? ctx.multiplier : ctx.venue.multiplier;
+  const fillPerToken = usd / tokensIn;
+  const fillPerShare = fillPerToken / multiplier;
+  const reference = ctx.reference && ctx.reference > 0 ? ctx.reference : null;
+  return {
+    ...base,
+    ok: true,
+    tokensOut: tokensIn,
+    tokensIn,
+    multiplier,
+    fillPerToken,
+    fillPerShare,
+    reference,
+    executableGapPct: reference === null ? null : (fillPerShare - reference) / reference,
+    executionMode: r.executionMode,
+    vendorName: r.vendorName,
+    route: routeSymbols(r),
+    protocols: (r.dexRouterList ?? []).map((h) => h.dexProtocol?.dexName ?? "?"),
+    vendorPriceImpact: r.priceImpactPercent,
+    networkFeeUsd: r.tradeFee,
+    gasLimit: r.estimateGasFee,
+    quoteId: r.quoteId,
+    routeCount: routes.length,
+    approveTarget: r.approveTarget,
+    tokenDecimals: r.fromToken?.decimal ?? ctx.decimals,
+  };
+}
+
+export function sellQuotePath(tokenAddress: string, tokenQty: bigint, wallet?: string): string {
+  const qs = new URLSearchParams({ binanceChainId: CHAIN_ID, fromTokenAddress: tokenAddress, toTokenAddress: USDT_BSC, amount: tokenQty.toString() });
+  if (wallet) qs.set("userWalletAddress", wallet);
+  return `${QUOTE_PATH}?${qs}`;
+}
+
+export async function getSellQuote(venue: Venue, tokenQty: bigint, decimals: number, opts: QuoteOptions = {}): Promise<ExecQuote> {
+  const ctx: ParseSellContext = { venue, tokenQty, decimals, multiplier: opts.multiplier, reference: opts.reference };
+  const wallet = opts.wallet ?? process.env.GAP_WALLET_ADDRESS;
+  try {
+    const data = await signedGet(sellQuotePath(venue.address, tokenQty, wallet), opts.creds ?? credentialsFromEnv(), {
+      limiter: opts.limiter ?? quoteLimiter,
+      endpoint: QUOTE_PATH,
+    });
+    return parseSellQuote({ ...ctx, ts: Date.now() }, data);
+  } catch (err) {
+    if (err instanceof ApiError) return quoteFromError({ venue, usd: 0, ts: Date.now() }, err, "sell");
+    throw err;
+  }
 }
 
 export interface QuoteOptions {

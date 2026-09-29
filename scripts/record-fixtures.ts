@@ -5,6 +5,7 @@
  *   pnpm record-fixtures --quotes   signed aggregator quotes for the fixture venues (needs .env.local;
  *                                   record during the US regular session)
  *   pnpm record-fixtures --trade    approve / swap / simulate build responses (no signing, no broadcast)
+ *   pnpm record-fixtures --sell     token to USDT quotes for the wallet's AAPLB and NVDAB holdings
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -27,6 +28,7 @@ import {
   quoteLimiter,
   quotePath,
   rawQuotePath,
+  sellQuotePath,
   signedGet,
   signedPost,
   simulateBody,
@@ -157,9 +159,35 @@ async function recordTrade() {
   save("trade.json", { recordedAt: new Date().toISOString(), wallet: FIXTURE_WALLET, calls: redactWallet(stripped, wallet) });
 }
 
+/** Token to USDT quotes for the sizes the wallet holds (read-only; nothing is built or signed). */
+async function recordSell() {
+  const envFile = resolve(root, ".env.local");
+  if (existsSync(envFile)) process.loadEnvFile(envFile);
+  const creds = credentialsFromEnv();
+  const wallet = process.env.GAP_WALLET_ADDRESS;
+  if (!wallet) throw new Error("GAP_WALLET_ADDRESS is not set in .env.local");
+  const jobs = [
+    { key: "AAPLB", token: "0x431a3BEE82E2ca41e49895CbECE5bB0F76A89b7A", amount: 2859609639909174n },
+    { key: "NVDAB", token: "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436", amount: 6527800324088372n },
+  ];
+  const out: Record<string, unknown> = {};
+  for (const j of jobs) {
+    try {
+      const data = await signedGet(sellQuotePath(j.token, j.amount, wallet), creds, { limiter: quoteLimiter, endpoint: "/quote" });
+      out[j.key] = { ok: true, amount: j.amount.toString(), data: stripQuoteIds(data) };
+    } catch (err) {
+      if (!(err instanceof ApiError)) throw err;
+      out[j.key] = { ok: false, amount: j.amount.toString(), httpStatus: err.httpStatus, code: err.code, msg: err.message };
+    }
+    console.log(j.key, (out[j.key] as { ok: boolean }).ok ? "ok" : "error");
+  }
+  save("sell-quotes.json", { recordedAt: new Date().toISOString(), wallet: "redacted", quotes: redactWallet(out, wallet) });
+}
+
 async function main() {
   mkdirSync(outDir, { recursive: true });
-  if (process.argv.includes("--quotes")) await recordQuotes();
+  if (process.argv.includes("--sell")) await recordSell();
+  else if (process.argv.includes("--quotes")) await recordQuotes();
   else if (process.argv.includes("--trade")) await recordTrade();
   else await recordPublic();
 }

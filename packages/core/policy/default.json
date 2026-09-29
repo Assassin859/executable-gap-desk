@@ -11,5 +11,8 @@
   "maxVenueDisagreementPct": 0.03,
   "offHoursMaxVerdict": "CAUTION",
   "maxDailySpendUsd": 5,
-  "slippagePct": 0.5
+  "slippagePct": 0.5,
+  "maxLimitOrderUsd": 10,
+  "maxWalletQuoteDeviationPct": 0.005,
+  "marketOrderTimeoutSec": 180
 }

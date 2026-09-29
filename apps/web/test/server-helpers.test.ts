@@ -28,12 +28,29 @@ describe("execGuard", () => {
   });
 
   it("validates the request and needs a typed yes for live", () => {
-    expect(parseExecRequest({ symbol: "NVDAB", usd: 1.5 }, 25)).toEqual({ ok: true, req: { symbol: "NVDAB", usd: 1.5, live: false } });
+    const buy = { side: "buy", via: "contract-call", all: false };
+    expect(parseExecRequest({ symbol: "NVDAB", usd: 1.5 }, 25)).toEqual({ ok: true, req: { symbol: "NVDAB", usd: 1.5, live: false, ...buy } });
     expect(parseExecRequest({ symbol: "NVDAB", usd: 1.5, live: true }, 25)).toMatchObject({ ok: false });
-    expect(parseExecRequest({ symbol: "NVDAB", usd: 1.5, live: true, confirm: "yes" }, 25)).toEqual({ ok: true, req: { symbol: "NVDAB", usd: 1.5, live: true } });
+    expect(parseExecRequest({ symbol: "NVDAB", usd: 1.5, live: true, confirm: "yes" }, 25)).toEqual({ ok: true, req: { symbol: "NVDAB", usd: 1.5, live: true, ...buy } });
     expect(parseExecRequest({ symbol: "NVDAB", usd: 26 }, 25)).toMatchObject({ ok: false });
     expect(parseExecRequest({ symbol: "NVDAB; rm -rf", usd: 1 }, 25)).toMatchObject({ ok: false });
     expect(parseExecRequest(null, 25)).toMatchObject({ ok: false });
+  });
+
+  it("accepts via and side combinations; sells need the market-order route and usd or all", () => {
+    expect(parseExecRequest({ symbol: "AAPLB", side: "sell", via: "market-order", all: true }, 25)).toEqual({
+      ok: true,
+      req: { symbol: "AAPLB", usd: null, live: false, side: "sell", via: "market-order", all: true },
+    });
+    expect(parseExecRequest({ symbol: "AAPLB", side: "sell", via: "market-order", usd: 1 }, 25)).toMatchObject({ ok: true, req: { usd: 1, all: false } });
+    expect(parseExecRequest({ symbol: "AAPLB", usd: 1, via: "market-order" }, 25)).toMatchObject({ ok: true, req: { side: "buy", via: "market-order" } });
+    expect(parseExecRequest({ symbol: "AAPLB", side: "sell", usd: 1 }, 25)).toMatchObject({ ok: false, error: expect.stringMatching(/market-order/) });
+    expect(parseExecRequest({ symbol: "AAPLB", side: "sell", via: "market-order" }, 25)).toMatchObject({ ok: false });
+    expect(parseExecRequest({ symbol: "AAPLB", side: "sell", via: "market-order", all: true, usd: 1 }, 25)).toMatchObject({ ok: false });
+    expect(parseExecRequest({ symbol: "AAPLB", all: true, via: "market-order" }, 25)).toMatchObject({ ok: false });
+    expect(parseExecRequest({ symbol: "AAPLB", usd: 1, side: "short" }, 25)).toMatchObject({ ok: false });
+    expect(parseExecRequest({ symbol: "AAPLB", usd: 1, via: "rfq" }, 25)).toMatchObject({ ok: false });
+    expect(parseExecRequest({ symbol: "AAPLB", side: "sell", via: "market-order", all: true, live: true }, 25)).toMatchObject({ ok: false });
   });
 });
 
@@ -89,7 +106,7 @@ describe("proof ledger", () => {
 
   it("lists the mainnet fills with quote vs fill and BscScan links", () => {
     const fills = ledger.onChain.filter((r) => r.outcome === "FILLED" && r.kind === "trade");
-    expect(fills.map((f) => f.what)).toEqual(expect.arrayContaining(["NVDAB", "AAPLB"]));
+    expect(fills.map((f) => f.what.replace(/^Buy /, ""))).toEqual(expect.arrayContaining(["NVDAB", "AAPLB"]));
     for (const f of fills) {
       expect(f.filledPerShare).toBeGreaterThan(0);
       expect(f.quotedPerShare).toBeGreaterThan(0);
@@ -97,10 +114,19 @@ describe("proof ledger", () => {
     }
   });
 
+  it("shows the wallet market-order sells and the limit order the wallet turned down", () => {
+    const sells = ledger.onChain.filter((r) => r.side === "sell" && r.outcome === "FILLED");
+    expect(sells.map((r) => r.what)).toEqual(expect.arrayContaining(["Sell AAPLB (wallet market order)", "Sell NVDAB (wallet market order)"]));
+    expect(sells.every((r) => r.via === "market-order" && r.orderId && r.txs.length === 1)).toBe(true);
+    const limit = ledger.limits.find((r) => r.what === "Limit buy AAPLB");
+    expect(limit).toMatchObject({ orderId: null, refusal: { message: expect.stringMatching(/Raw limit orders are not supported/) } });
+    expect(ledger.refusals.some((r) => r.kind === "limit" && r.mode === "live")).toBe(false);
+  });
+
   it("keeps refusals separate and in time order", () => {
     expect(ledger.refusals.length).toBeGreaterThan(0);
     expect(ledger.refusals.every((r) => r.outcome === "REFUSED" && r.txs.length === 0)).toBe(true);
-    expect(ledger.refusals.map((r) => r.what)).toEqual(expect.arrayContaining(["MSTRx", "AAOIB"]));
+    expect(ledger.refusals.map((r) => r.what)).toEqual(expect.arrayContaining(["Buy MSTRx", "Buy AAOIB"]));
     const times = ledger.onChain.map((r) => r.createdAt);
     expect(times).toEqual([...times].sort());
   });

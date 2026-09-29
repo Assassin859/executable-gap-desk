@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "id": "2026-09-29T17-05-48-637Z-exec-AAPLB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T17:05:48.637Z",
+  "mode": "live",
+  "outcome": "FILLED",
+  "refusal": null,
+  "symbol": "AAPLB",
+  "venue": {
+    "ticker": "AAPL",
+    "platform": "bstocks",
+    "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a"
+  },
+  "usd": 0.946072,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "You receive +0.02% vs the stock ($331.04 per share vs the stock at $330.98)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 330.9825,
+    "displayedGapPct": 0.00032479058560485545,
+    "executableGapPct": 0.0001722802501032145,
+    "fillPerShare": 331.0395217478798,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.002857883746551181,
+    "fillPerShare": 331.0395217478798,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "AAPLB",
+      "USDT"
+    ],
+    "vendorPriceImpact": 0.0001375286,
+    "networkFeeUsd": 0.01859669,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "41934267991288669",
+    "bnb": "1114125284880510",
+    "allowance": "0",
+    "token": "2857883746551181"
+  },
+  "approval": null,
+  "swap": {
+    "to": "0xb300000b72deaeb607a12d5f54773d1c19c7028d",
+    "value": "0",
+    "txHash": "0x234519337081049ebfddca90089ecf2c0af576053fbe0b2e6b608535652247b7",
+    "bscscan": "https://bscscan.com/tx/0x234519337081049ebfddca90089ecf2c0af576053fbe0b2e6b608535652247b7",
+    "blockNumber": "124753644",
+    "gasUsed": "351396",
+    "gasCostBnb": 0.000024083085799368,
+    "minReceiveAmount": null,
+    "slippagePct": null,
+    "gas": null,
+    "gasPrice": null,
+    "worstCaseGapPct": null
+  },
+  "simulation": null,
+  "fill": {
+    "tokensOut": 0.002856158894841615,
+    "usdSpent": 0,
+    "usdReceived": 0.9460715414056017,
+    "source": "transfer-logs",
+    "fillPerShare": 331.03919728970635,
+    "quotedFillPerShare": 331.0395217478798,
+    "realizedVsQuotedPct": -9.801191462877057e-7,
+    "realizedGapPct": 0.00017129996210172785
+  },
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T17:05:51.652Z",
+      "step": "gate",
+      "detail": "sell 0.002857883746551181 AAPLB"
+    },
+    {
+      "at": "2026-09-29T17:05:53.091Z",
+      "step": "gate passed",
+      "detail": "GO, receive +0.02% vs the stock"
+    },
+    {
+      "at": "2026-09-29T17:05:53.965Z",
+      "step": "wallet quote checked",
+      "detail": "$330.84/share (-0.06% vs the gated quote)"
+    },
+    {
+      "at": "2026-09-29T17:05:54.968Z",
+      "step": "market order: send"
+    },
+    {
+      "at": "2026-09-29T17:05:56.175Z",
+      "step": "market order: accepted",
+      "detail": "order 26092900001925734301 UNKNOWN"
+    },
+    {
+      "at": "2026-09-29T17:08:58.108Z",
+      "step": "stopped",
+      "detail": "ORDER_TIMEOUT: Order 26092900001925734301 is still UNKNOWN after 180s; check it with baw market-order list --orderId 26092900001925734301."
+    },
+    {
+      "at": "2026-09-29T17:11:04.988Z",
+      "step": "reconciled",
+      "detail": "ORDER_TIMEOUT earlier; order 26092900001925734302 FINISHED in 0x234519337081049ebfddca90089ecf2c0af576053fbe0b2e6b608535652247b7"
+    },
+    {
+      "at": "2026-09-29T17:11:04.990Z",
+      "step": "filled",
+      "detail": "sold 0.00285616 AAPLB for 0.9461 USDT"
+    }
+  ],
+  "side": "sell",
+  "via": "market-order",
+  "walletQuote": {
+    "fromQty": "0.002857883746551181",
+    "toQty": "0.946072468744822416",
+    "fillPerShare": 330.83972565390815,
+    "deviationPct": -0.0006035415134626465,
+    "gapPct": -0.0004313652416422896
+  },
+  "order": {
+    "id": "26092900001925734302",
+    "status": "FINISHED",
+    "raw": {
+      "orderType": "market",
+      "orderId": "26092900001925734302",
+      "chain": "56",
+      "fromToken": "0x431a3BEE82E2ca41e49895CbECE5bB0F76A89b7A",
+      "fromTokenName": "AAPLB",
+      "fromTokenQty": "0.002857883746551181",
+      "toToken": "0x55d398326f99059fF775485246999027B3197955",
+      "toTokenName": "USDT",
+      "toTokenActualQty": "0.946071541405601633",
+      "status": "FINISHED",
+      "slippage": "0.5000",
+      "txHash": "0x234519337081049ebfddca90089ecf2c0af576053fbe0b2e6b608535652247b7",
+      "bookTime": "2026-09-29T22:35:56+05:30",
+      "updatedTime": "2026-09-29T22:35:57+05:30",
+      "swapResponseOrderId": "26092900001925734301"
+    }
+  }
+}

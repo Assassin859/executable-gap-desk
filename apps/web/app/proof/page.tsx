@@ -22,7 +22,8 @@ export default function ProofPage() {
           <a className="font-mono text-accent underline" href={`https://bscscan.com/address/${WALLET}`}>
             {shortHash(WALLET)}
           </a>
-          . Every trade passed the gate (GO), was simulated, and used an exact-amount approval. Refusals stop before anything is signed. Each row is a committed JSON receipt in{" "}
+          . Every trade, buy or sell, passed the gate (GO). Contract calls were simulated with an exact-amount approval; wallet market orders had to match the gated quote within 0.5%.
+          Refusals stop before anything is signed. Each row is a committed JSON receipt in{" "}
           <a className="underline" href={`${REPO_URL}/tree/main/receipts/exec`}>
             receipts/exec
           </a>
@@ -38,9 +39,12 @@ export default function ProofPage() {
                 <span className="font-mono text-lg font-semibold">{f.what}</span>
                 <VerdictChip verdict="GO" />
               </div>
-              <p className="num mt-2 text-2xl font-semibold">{usd(f.filledPerShare)}<span className="text-sm font-normal text-muted"> per share filled</span></p>
+              <p className="num mt-2 text-2xl font-semibold">
+                {usd(f.filledPerShare)}
+                <span className="text-sm font-normal text-muted"> per share {f.side === "sell" ? "received" : "filled"}</span>
+              </p>
               <p className="num text-sm text-muted">
-                quoted {usd(f.quotedPerShare)} · {pct(f.realizedVsQuotedPct)} vs quote · {pct(f.realizedGapPct)} vs the stock · {usd(f.usd)} spent
+                quoted {usd(f.quotedPerShare)} · {pct(f.realizedVsQuotedPct)} vs quote · {pct(f.realizedGapPct)} vs the stock · {usd(f.usd)} {f.side === "sell" ? "received" : "spent"}
               </p>
               {f.txs.map((t) => (
                 <a key={t.hash} href={t.url} className="mt-1 block font-mono text-xs text-accent underline">
@@ -100,6 +104,33 @@ export default function ProofPage() {
           </table>
         </div>
       </section>
+
+      {ledger.limits.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="font-semibold">Limit orders</h2>
+          <p className="text-sm text-muted">
+            Gap-guarded limit buys through the Agentic Wallet: only on a GO venue, with the trigger under the stock and under the market. Nothing is on chain unless one triggers.
+          </p>
+          <ul className="space-y-2">
+            {ledger.limits.map((r) => (
+              <li key={r.id} className="rounded-lg border border-line bg-panel p-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono font-semibold">{r.what}</span>
+                  <span className="num text-muted">{usd(r.usd)}</span>
+                  {r.triggerPriceUsd !== null && <span className="num text-muted">trigger ${r.triggerPriceUsd.toFixed(4)}/token</span>}
+                  <span className={r.outcome === "PLACED" ? "text-go" : r.outcome === "CANCELED" ? "text-accent" : "text-block"}>
+                    {r.orderId ? r.outcome : "NOT PLACED"}
+                  </span>
+                  {r.orderId && <span className="font-mono text-xs text-muted">strategy {r.orderId}</span>}
+                  <span className="text-muted">{utc(r.createdAt)}</span>
+                  {r.verdict && <VerdictChip verdict={r.verdict} small />}
+                </div>
+                {!r.orderId && r.refusal && <p className="mt-1 text-muted">The Agentic Wallet turned it down: {r.refusal.message}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="space-y-2">
         <h2 className="font-semibold">Refused before signing</h2>

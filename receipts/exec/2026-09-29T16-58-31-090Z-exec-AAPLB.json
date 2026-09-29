@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "id": "2026-09-29T16-58-31-090Z-exec-AAPLB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T16:58:31.090Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "AAPLB",
+  "venue": {
+    "ticker": "AAPL",
+    "platform": "bstocks",
+    "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a"
+  },
+  "usd": 0.946475,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "You receive -0.02% vs the stock ($330.98 per share vs the stock at $331.03)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 331.032857,
+    "displayedGapPct": 0.00017262032693025512,
+    "executableGapPct": -0.000158046777150481,
+    "fillPerShare": 330.9805383238202,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.002857883746551181,
+    "fillPerShare": 330.9805383238202,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "AAPLB",
+      "USDT"
+    ],
+    "vendorPriceImpact": 0.0003807556,
+    "networkFeeUsd": 0.01880086,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "41934267991288669",
+    "bnb": "1114125284880510",
+    "allowance": "0",
+    "token": "2857883746551181"
+  },
+  "approval": null,
+  "swap": null,
+  "simulation": null,
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T16:58:32.570Z",
+      "step": "gate",
+      "detail": "sell 0.002857883746551181 AAPLB"
+    },
+    {
+      "at": "2026-09-29T16:58:32.761Z",
+      "step": "gate passed",
+      "detail": "GO, receive -0.02% vs the stock"
+    },
+    {
+      "at": "2026-09-29T16:58:33.360Z",
+      "step": "wallet quote checked",
+      "detail": "$330.78/share (-0.06% vs the gated quote)"
+    },
+    {
+      "at": "2026-09-29T16:58:33.771Z",
+      "step": "dry run: wallet quote checked; not sent",
+      "detail": "pass --live to send the market order"
+    }
+  ],
+  "side": "sell",
+  "via": "market-order",
+  "walletQuote": {
+    "fromQty": "0.002857883746551181",
+    "toQty": "0.945903901903034142",
+    "fillPerShare": 330.78077815302004,
+    "deviationPct": -0.000603540533868907,
+    "gapPct": -0.0007614919233831261
+  }
+}

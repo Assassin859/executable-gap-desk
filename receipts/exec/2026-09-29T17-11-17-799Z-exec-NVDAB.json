@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "id": "2026-09-29T17-11-17-799Z-exec-NVDAB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T17:11:17.799Z",
+  "mode": "live",
+  "outcome": "FILLED",
+  "refusal": null,
+  "symbol": "NVDAB",
+  "venue": {
+    "ticker": "NVDA",
+    "platform": "bstocks",
+    "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"
+  },
+  "usd": 1.497239,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "You receive +0.08% vs the stock ($229.54 per share vs the stock at $229.36)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 229.356667,
+    "displayedGapPct": 0.0006685351771354086,
+    "executableGapPct": 0.0008090148984252873,
+    "fillPerShare": 229.54221996065615,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.00652272418519444,
+    "fillPerShare": 229.54221996065615,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "NVDAB",
+      "USDT"
+    ],
+    "vendorPriceImpact": -0.0001125672,
+    "networkFeeUsd": 0.01863557,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "988005809396890302",
+    "bnb": "1086392732480190",
+    "allowance": "0",
+    "token": "6522724185194440"
+  },
+  "approval": null,
+  "swap": {
+    "to": "0xb300000b72deaeb607a12d5f54773d1c19c7028d",
+    "value": "0",
+    "txHash": "0x4d25807c3d7831fe4b351d2b5963647c385b1dc74da20c138b969ef79d2dd8ff",
+    "bscscan": "https://bscscan.com/tx/0x4d25807c3d7831fe4b351d2b5963647c385b1dc74da20c138b969ef79d2dd8ff",
+    "blockNumber": "124754368",
+    "gasUsed": "337697",
+    "gasCostBnb": 0.000045724645225012,
+    "minReceiveAmount": null,
+    "slippagePct": 0.5,
+    "gas": null,
+    "gasPrice": null,
+    "worstCaseGapPct": null
+  },
+  "simulation": null,
+  "fill": {
+    "tokensOut": 0.006517651993600485,
+    "usdSpent": 0,
+    "usdReceived": 1.4972391090977872,
+    "source": "transfer-logs",
+    "fillPerShare": 229.54199297531005,
+    "quotedFillPerShare": 229.54221996065615,
+    "realizedVsQuotedPct": -9.888609866504083e-7,
+    "realizedGapPct": 0.000808025237435389
+  },
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T17:11:19.509Z",
+      "step": "gate",
+      "detail": "sell 0.00652272418519444 NVDAB"
+    },
+    {
+      "at": "2026-09-29T17:11:20.194Z",
+      "step": "gate passed",
+      "detail": "GO, receive +0.08% vs the stock"
+    },
+    {
+      "at": "2026-09-29T17:11:20.904Z",
+      "step": "wallet quote checked",
+      "detail": "$229.36/share (-0.08% vs the gated quote)"
+    },
+    {
+      "at": "2026-09-29T17:11:21.321Z",
+      "step": "market order: send"
+    },
+    {
+      "at": "2026-09-29T17:11:22.491Z",
+      "step": "market order: accepted",
+      "detail": "order 26092900001925744435 UNKNOWN"
+    },
+    {
+      "at": "2026-09-29T17:11:26.703Z",
+      "step": "market order: finished",
+      "detail": "0x4d25807c3d7831fe4b351d2b5963647c385b1dc74da20c138b969ef79d2dd8ff"
+    },
+    {
+      "at": "2026-09-29T17:11:27.319Z",
+      "step": "filled",
+      "detail": "sold 0.00651765 NVDAB for 1.4972 USDT"
+    }
+  ],
+  "side": "sell",
+  "via": "market-order",
+  "walletQuote": {
+    "fromQty": "0.00652272418519444",
+    "toQty": "1.497240589717486345",
+    "fillPerShare": 229.36372367158467,
+    "deviationPct": -0.0007776185535806057,
+    "gapPct": 0.00003076723984953114
+  },
+  "order": {
+    "id": "26092900001925744436",
+    "status": "FINISHED",
+    "raw": {
+      "orderType": "market",
+      "orderId": "26092900001925744436",
+      "chain": "56",
+      "fromToken": "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436",
+      "fromTokenName": "NVDAB",
+      "fromTokenQty": "0.00652272418519444",
+      "toToken": "0x55d398326f99059fF775485246999027B3197955",
+      "toTokenName": "USDT",
+      "toTokenActualQty": "1.497239109097787010",
+      "status": "FINISHED",
+      "slippage": "0.5000",
+      "txHash": "0x4d25807c3d7831fe4b351d2b5963647c385b1dc74da20c138b969ef79d2dd8ff",
+      "bookTime": "2026-09-29T22:41:22+05:30",
+      "updatedTime": "2026-09-29T22:41:23+05:30",
+      "swapResponseOrderId": "26092900001925744435"
+    }
+  }
+}

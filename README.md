@@ -20,7 +20,7 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 | 2 | Executable quotes and the GO / CAUTION / BLOCK gate | done |
 | 3 | Guarded mainnet fills via `baw` with receipts | done |
 | 4 | Web desk: radar, Truth Cards, proof ledger, DX log | done |
-| 5 | Agentic Wallet and BNB Agent Studio integrations | next |
+| 5 | Agentic Wallet and BNB Agent Studio integrations: live dashboard (5.1) and gated wallet trading (5.2) done; x402, B402 + ERC-8004, MCP next | in progress |
 | 6 | Ship: polish, demo, DX report | planned |
 
 ## Quickstart
@@ -99,11 +99,13 @@ The gate is a pure function of the venue data, the quote, the session and [`pack
 | Executable gap vs the stock | ≤ 0.75% GO, ≤ 1.5% CAUTION, else | BLOCK |
 | No stock price to compare against | venues within 3% CAUTION, else | BLOCK |
 | Displayed vs executable gap differ | > 3% | BLOCK |
-| Fill vs displayed price per share | > 2% | BLOCK |
-| Price impact from $25 to $100 (with `--ladder`) | > 1% | CAUTION |
+| Fill vs displayed price per share | buy: paying > 2% over; sell: receiving > 2% under | BLOCK |
+| Price impact from $25 to $100 (with `--ladder`, buys only) | > 1% | CAUTION |
 | Outside US regular hours | | at best CAUTION |
 
-The best venue is the cheapest GO, falling back to the cheapest CAUTION. A BLOCK venue is never recommended.
+The best venue for a buy is the cheapest GO, falling back to the cheapest CAUTION; for a sell it is the one that pays the most. A BLOCK venue is never recommended. Exits are gated exactly like entries, so an off-hours sell is refused too.
+
+Execution-only policy fields: `maxDailySpendUsd` (5), `slippagePct` (0.5), `maxLimitOrderUsd` (10, USDT committed per limit buy), `maxWalletQuoteDeviationPct` (0.005: the Agentic Wallet's own market-order quote must be within 0.5% of the gated quote) and `marketOrderTimeoutSec` (180: how long a market order is polled before it is recorded as PENDING).
 
 ### Guarded execution
 
@@ -126,6 +128,27 @@ Every run writes a JSON receipt to [`receipts/exec/`](receipts/exec/), including
 6. **Simulation:** Binance `/pre-transaction/simulate` must succeed and deliver at least the minimum. A dry run from an unfunded wallet falls back to a BSC `eth_call` with the USDT balance and allowance overridden, and the receipt says which one ran.
 7. **Wallet preview:** `baw contract-call preview` must pass its own simulation with no risk flags, and then you confirm.
 8. **After broadcast:** wait for the receipt (a revert is recorded as `TX_REVERTED`), then read the real fill from the `Transfer` logs and compare it with the quote.
+
+### Wallet trading (Agentic Wallet market and limit orders)
+
+The same gate also drives the Agentic Wallet's own trading commands, for buys, sells and limit orders:
+
+```bash
+pnpm gap positions --warn-open                                  # holdings, what each fetches if sold now, and the exit verdict
+pnpm gap exec AAPLB --side sell --all --via market-order        # dry run: gate the sell, check the wallet's quote, send nothing
+pnpm gap exec AAPLB --side sell --all --via market-order --live # then type "yes": baw market-order swap, poll, read the fill
+pnpm gap exec NVDAB --usd 1 --via market-order                  # a gated buy through the wallet instead of a router tx
+pnpm gap target AAPLB --usd 1 --discount 2                      # limit buy only on a GO venue, trigger 2% under the stock
+pnpm gap targets                                                # WORKING limit orders re-gated now, with "cancel suggested"
+pnpm gap targets --cancel <strategyId> --live                   # cancel one
+pnpm gap reconcile                                              # settle PENDING market orders from their on-chain fill
+```
+
+- **Market orders** (`--via market-order`): `baw market-order swap` executes the moment it is called; it has no preview. So the gate (GO on a fresh aggregator quote, buy or sell direction) and the wallet's own `market-order quote` both run before it. The wallet's price per share must be within 0.5% of the gated quote and inside the CAUTION band vs the stock (`WALLET_QUOTE_MISMATCH` otherwise). Then comes the typed `yes`. The order is polled every 3 s until `FINISHED`, and the real fill is read from the `Transfer` logs of its transaction.
+- **Sells** size by `--all` (the on-chain `balanceOf`), `--qty <tokens>` or `--usd <value>`. They must be worth at most `maxTradeUsd` and are refused with `NO_POSITION` if nothing is held. They never count toward the daily spend cap. `--side sell` needs `--via market-order` (`SELL_VIA_UNSUPPORTED`).
+- **`gap positions`** matches wallet tokens to venues, quotes selling each full position and runs the sell gate. `--warn-open` exits with code 3 when the US open is less than 60 minutes away outside the regular session (tokens can gap at the open), or when any exit is BLOCK.
+- **Limit orders** (`gap target`) are placed only when the venue is GO now. The trigger is `stock price × multiplier × (1 − discount)`, so it is never above the stock. It is refused with `TRIGGER_AT_MARKET` if it is at or above the wallet's current price, because it would fill at once. Each order is capped at $10 and counts toward the daily cap until it is cancelled. `gap targets` re-gates every WORKING order and suggests cancelling when the venue has turned BLOCK or its displayed and executable prices disagree. **Live, the Agentic Wallet refused a limit buy on AAPLB** with "Raw limit orders are not supported" ([DX #32](docs/DX_LOG.md#32-limit-order-buy-on-bstocks-fails-with-raw-limit-orders-are-not-supported-2-undocumented)), so the limit path is proven up to the wallet but no order has been placed. A `success: false` answer from the wallet is recorded as `REFUSED / WALLET_REJECTED`.
+- **Order tracking:** `market-order swap` returns an order id one lower than the one the wallet stores, and no status ([DX #31](docs/DX_LOG.md#31-market-order-swap-returns-an-orderid-one-lower-than-the-stored-order-and-no-status)). So the poller falls back to finding the order by pair, time and size. `gap reconcile` settles any receipt left `PENDING` by reading the finished order's transaction.
 
 ### Web desk
 
@@ -201,7 +224,7 @@ docs/vendor/       snapshot of the Binance Web3 llms-full.txt docs
 
 ## Proof ledger
 
-Real BSC mainnet runs of `gap exec` / `gap fund` on 2026-09-29, from the Agentic Wallet [`0x623d…1C65`](https://bscscan.com/address/0x623dF829DF5cf33506a0fbb152dbc885d5b61C65). Every row has a JSON receipt in [`receipts/exec/`](receipts/exec/).
+Real BSC mainnet runs of `gap exec` / `gap fund` / `gap target` on 2026-09-29, from the Agentic Wallet [`0x623d…1C65`](https://bscscan.com/address/0x623dF829DF5cf33506a0fbb152dbc885d5b61C65). Every row has a JSON receipt in [`receipts/exec/`](receipts/exec/).
 
 **Fills**
 
@@ -215,6 +238,21 @@ Real BSC mainnet runs of `gap exec` / `gap fund` on 2026-09-29, from the Agentic
 
 Both stock fills landed within 0.02% of the quote and 0.11% of the stock. Network fees were about 0.00003 BNB (under $0.03) per swap. Both exact approvals were fully used: the router's USDT allowance is back to 0.
 
+**Exits through the Agentic Wallet** (`gap exec <token> --side sell --all --via market-order --live`)
+
+| Run (UTC) | What | Size | Gate | Quoted | Received | Fill vs quote | Fill vs stock | Tx |
+|------------|------|------|------|--------|----------|---------------|---------------|----|
+| 17:05:48 | **Sell AAPLB** (wallet market order `…734302`) | 0.00285616 AAPLB | GO | $331.04/share | **$331.04/share** (0.9461 USDT) | -0.0001% | +0.02% (above the stock) | [0x2345…47b7](https://bscscan.com/tx/0x234519337081049ebfddca90089ecf2c0af576053fbe0b2e6b608535652247b7) |
+| 17:11:17 | **Sell NVDAB** (wallet market order `…744436`) | 0.00651765 NVDAB | GO | $229.54/share | **$229.54/share** (1.4972 USDT) | -0.0001% | +0.08% (above the stock) | [0x4d25…d8ff](https://bscscan.com/tx/0x4d25807c3d7831fe4b351d2b5963647c385b1dc74da20c138b969ef79d2dd8ff) |
+
+Both positions from the buys above were closed in full, each sold within 0.1% of the stock and matching the gated quote. Gas was 0.000024 and 0.000046 BNB. The AAPLB receipt was first recorded `PENDING` because of the order-id mismatch ([DX #31](docs/DX_LOG.md#31-market-order-swap-returns-an-orderid-one-lower-than-the-stored-order-and-no-status)); `gap reconcile` then settled it from the transaction. Round trip: $2.45 of USDT in, $2.44 back.
+
+**Limit order (Agentic Wallet)**
+
+| Run (UTC) | What | Size | Gate | Trigger | Result |
+|------------|------|------|------|---------|--------|
+| 17:11:49 | Limit buy AAPLB, 2% under the stock | 1 USDT | GO | $324.85/token (wallet price $331.34) | Not placed: the wallet answered "Raw limit orders are not supported. (2)" ([DX #32](docs/DX_LOG.md#32-limit-order-buy-on-bstocks-fails-with-raw-limit-orders-are-not-supported-2-undocumented)) |
+
 **Refusals (nothing signed)**
 
 | Run (UTC) | Venue | Size | Mode | Refused because |
@@ -227,7 +265,7 @@ Both stock fills landed within 0.02% of the quote and 0.11% of the stock. Networ
 
 ## Developer experience
 
-We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (29 entries so far; #22–#28 come from the live fills, #29 from deploying the web desk). The [DX page](https://executable-gap-desk.vercel.app/dx) lists them by severity.
+We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (33 entries so far; #22–#28 come from the live fills, #29 from deploying the web desk, #30–#33 from trading through the Agentic Wallet). The [DX page](https://executable-gap-desk.vercel.app/dx) lists them by severity.
 
 _The full DX report will be summarized here in Part 6._
 

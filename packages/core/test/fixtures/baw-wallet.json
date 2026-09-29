@@ -1,0 +1,9 @@
+{
+  "recordedAt": "2026-09-29T16:55:00.000Z",
+  "note": "Live baw 1.10.0 --json output (read-only commands). Swap and limit-order shapes are added after their first live run.",
+  "balance": "{\n  \"success\": true,\n  \"data\": [\n    { \"symbol\": \"AAPLB\", \"address\": \"0x431a3BEE82E2ca41e49895CbECE5bB0F76A89b7A\", \"binanceChainId\": \"56\", \"balance\": \"0.002859609639909174\", \"price\": \"331.34\", \"value\": \"0.9475030580875057\" },\n    { \"symbol\": \"USDT\", \"address\": \"0x55d398326f99059fF775485246999027B3197955\", \"binanceChainId\": \"56\", \"balance\": \"0.041934267991288669\", \"price\": \"0.999769884738820121908239000073125095\", \"value\": \"0.041924618276257465\" },\n    { \"symbol\": \"NVDAB\", \"address\": \"0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436\", \"binanceChainId\": \"56\", \"balance\": \"0.006527800324088372\", \"price\": \"230.35\", \"value\": \"1.5036788046537564\" },\n    { \"symbol\": \"BNB\", \"address\": \"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE\", \"binanceChainId\": \"56\", \"balance\": \"0.00111412528488051\", \"price\": \"756.758724045749501880128438945195476181\", \"value\": \"0.8431240290132819\" }\n  ]\n}",
+  "quota": "{\n  \"success\": true,\n  \"data\": { \"quotaUsed\": 0, \"quotaLeft\": 50000, \"dailyLimit\": 50000, \"date\": \"2026-09-29\" }\n}",
+  "quoteAaplbUsdt": "{\n  \"success\": true,\n  \"data\": { \"fromCoinSymbol\": \"AAPLB\", \"fromCoinAmount\": \"0.002859609639909174\", \"toCoinSymbol\": \"USDT\", \"toCoinAmount\": \"0.947461127952585067\", \"slippage\": 0.01 }\n}",
+  "limitListEmpty": "{\n  \"success\": true,\n  \"data\": { \"total\": 0, \"page\": 1, \"pageSize\": 20, \"list\": [] }\n}",
+  "marketListEmpty": "{\n  \"success\": true,\n  \"data\": { \"total\": 0, \"page\": 1, \"pageSize\": 3, \"list\": [] }\n}"
+}

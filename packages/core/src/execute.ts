@@ -23,7 +23,7 @@ import {
 import { USDT_BSC, type Platform } from "./config";
 import { DEFAULT_POLICY, evaluateVenue, type GateReason, type Policy, type Verdict, type VenueVerdict } from "./gate";
 import { buildMatrix, type MatrixRow } from "./matrix";
-import { getQuote, usdToBaseUnits, type ExecQuote, type QuoteOk } from "./quotes";
+import { getQuote, getSellQuote, usdToBaseUnits, type ExecQuote, type QuoteOk } from "./quotes";
 import { loadRegistry, resolve } from "./registry";
 import type { ApproveTx, QuoteRoute, SimulateResult, SwapResponse } from "./schemas";
 import type { SessionName } from "./session";
@@ -41,7 +41,8 @@ import {
 } from "./trade";
 
 export type ExecMode = "dry-run" | "live";
-export type Outcome = "FILLED" | "SIMULATED" | "REFUSED" | "FAILED" | "PENDING";
+export type Outcome = "FILLED" | "SIMULATED" | "REFUSED" | "FAILED" | "PENDING" | "PLACED" | "CANCELED";
+export type ExecVia = "contract-call" | "market-order";
 
 export type RefusalCode =
   | "EXEC_DISABLED"
@@ -67,7 +68,14 @@ export type RefusalCode =
   | "PREVIEW_REJECTED"
   | "USER_DECLINED"
   | "PENDING_TIMEOUT"
-  | "TX_REVERTED";
+  | "TX_REVERTED"
+  | "WALLET_QUOTE_MISMATCH"
+  | "NO_POSITION"
+  | "SELL_VIA_UNSUPPORTED"
+  | "TRIGGER_AT_MARKET"
+  | "ORDER_FAILED"
+  | "ORDER_TIMEOUT"
+  | "WALLET_REJECTED";
 
 /** A rail stopped the run. Before anything is broadcast this is a REFUSED receipt; after, FAILED. */
 export class Refusal extends Error {
@@ -127,15 +135,24 @@ export interface TxRecord {
 export interface ExecReceipt {
   version: 1;
   id: string;
-  kind: "trade" | "funding";
+  kind: "trade" | "funding" | "limit";
   createdAt: string;
   mode: ExecMode;
   outcome: Outcome;
   refusal: { code: RefusalCode | "ERROR"; message: string } | null;
   symbol: string;
   venue: { ticker: string; platform: Platform; address: string } | null;
+  /** Buy: USDT paid. Sell: USDT expected (then received). Limit: USDT committed. */
   usd: number;
   wallet: string;
+  /** Absent on receipts written before sells existed: those are buys. */
+  side?: "buy" | "sell";
+  via?: ExecVia;
+  /** Agentic Wallet market or limit order. */
+  order?: { id: string; status: string; raw: unknown } | null;
+  /** The wallet's own market-order quote, checked against the gated aggregator quote. */
+  walletQuote?: { fromQty: string; toQty: string; fillPerShare: number; deviationPct: number; gapPct: number | null } | null;
+  limit?: { triggerPriceUsd: number; discountPct: number; qty: string; walletPricePerToken: number | null } | null;
   gate: {
     verdict: Verdict;
     session: SessionName | null;
@@ -156,7 +173,7 @@ export interface ExecReceipt {
     networkFeeUsd: number | null;
     approveTarget: string | null;
   } | null;
-  balances: { usdt: string; bnb: string; allowance: string } | null;
+  balances: { usdt: string; bnb: string; allowance: string; token?: string } | null;
   approval: ({ needed: boolean; amount: string; spender: string; allowanceBefore: string } & Omit<TxRecord, "to" | "value"> & Partial<Pick<TxRecord, "to" | "value">>) | null;
   swap: (TxRecord & { minReceiveAmount: string | null; slippagePct: number | null; gas: string | null; gasPrice: string | null; worstCaseGapPct: number | null }) | null;
   simulation: {
@@ -169,8 +186,13 @@ export interface ExecReceipt {
     overrides?: OverrideSim["overrides"];
   } | null;
   fill: {
+    /** Stock tokens received (buy) or sold (sell). */
     tokensOut: number;
+    /** USDT paid; 0 on a sell. */
     usdSpent: number;
+    /** Sell only: USDT received. */
+    usdReceived?: number;
+    source?: "transfer-logs" | "balance-change";
     fillPerShare: number | null;
     quotedFillPerShare: number | null;
     realizedVsQuotedPct: number | null;
@@ -185,9 +207,9 @@ export interface ExecResult {
   path: string | null;
 }
 
-const lower = (s: string | null | undefined) => (s ?? "").toLowerCase();
-const pct = (n: number) => `${n >= 0 ? "+" : ""}${(n * 100).toFixed(2)}%`;
-const units = (raw: bigint, decimals = 18) => Number(raw) / 10 ** decimals;
+export const lower = (s: string | null | undefined) => (s ?? "").toLowerCase();
+export const pct = (n: number) => `${n >= 0 ? "+" : ""}${(n * 100).toFixed(2)}%`;
+export const units = (raw: bigint, decimals = 18) => Number(raw) / 10 ** decimals;
 const PENDING_POLL_MS = 5_000;
 const PENDING_TIMEOUT_MS = 5 * 60_000;
 /** Reserve left in BNB after funding so later approve + swap gas is always covered. */
@@ -197,19 +219,38 @@ export const GAS_RESERVE_WEI = 1_000_000_000_000_000n;
 
 const venueOf = (r: MatrixRow) => ({ ticker: r.ticker, platform: r.platform, symbol: r.symbol, address: r.address, multiplier: r.multiplier ?? 1 });
 
-async function gateRow(row: MatrixRow, session: SessionName | null, usd: number, wallet: string, policy: Policy): Promise<GateResult> {
+export interface VenueContext {
+  ticker: string;
+  row: MatrixRow;
+  session: SessionName | null;
+}
+
+export async function gateRow(row: MatrixRow, session: SessionName | null, usd: number, wallet: string, policy: Policy): Promise<GateResult> {
   const quote = await getQuote(venueOf(row), usd, { multiplier: row.multiplier, reference: row.reference, wallet });
   return { ticker: row.ticker, row, session, verdict: evaluateVenue({ row, quote }, { session, now: Date.now() }, policy), quote };
 }
 
-/** Resolves a venue symbol (or address), rebuilds its matrix row from live data, then quotes and gates it. */
-export async function gateVenue(symbol: string, usd: number, wallet: string, policy: Policy): Promise<GateResult> {
+/** Quotes selling exactly `qty` base units of the venue token for USDT, then runs the sell-side gate. */
+export async function gateSellRow(ctx: VenueContext, qty: bigint, decimals: number, wallet: string, policy: Policy): Promise<GateResult> {
+  const { row, session } = ctx;
+  const quote = await getSellQuote(venueOf(row), qty, decimals, { multiplier: row.multiplier, reference: row.reference, wallet });
+  return { ticker: row.ticker, row, session, verdict: evaluateVenue({ row, quote }, { session, now: Date.now() }, policy), quote };
+}
+
+/** Resolves a venue symbol (or address) and rebuilds its matrix row from live data. */
+export async function venueContext(symbol: string): Promise<VenueContext> {
   const res = resolve(await loadRegistry(), symbol);
   if (!res?.match) throw new Refusal("NOT_A_VENUE", `"${symbol}" is not a BSC tokenized stock symbol or address. Pass a venue such as NVDAB, not a ticker.`);
   const matrix = await buildMatrix({ scope: "all", tickers: [res.ticker] });
   const row = matrix.rows.find((r) => r.symbol === res.match!.symbol);
   if (!row) throw new Refusal("NOT_A_VENUE", `No live data for ${res.match.symbol}.`);
-  return gateRow(row, matrix.session?.session ?? null, usd, wallet, policy);
+  return { ticker: res.ticker, row, session: matrix.session?.session ?? null };
+}
+
+/** Resolves a venue, rebuilds its matrix row from live data, then quotes and gates a buy. */
+export async function gateVenue(symbol: string, usd: number, wallet: string, policy: Policy): Promise<GateResult> {
+  const ctx = await venueContext(symbol);
+  return gateRow(ctx.row, ctx.session, usd, wallet, policy);
 }
 
 export function defaultExecDeps(): ExecDeps {
@@ -242,7 +283,8 @@ export function defaultExecDeps(): ExecDeps {
 // ---------- receipts ----------
 
 export function receiptId(kind: ExecReceipt["kind"], symbol: string, now: number): string {
-  return `${new Date(now).toISOString().replace(/[:.]/g, "-")}-${kind === "funding" ? "fund" : "exec"}-${symbol.replace(/[^A-Za-z0-9]/g, "")}`;
+  const tag = kind === "funding" ? "fund" : kind === "limit" ? "limit" : "exec";
+  return `${new Date(now).toISOString().replace(/[:.]/g, "-")}-${tag}-${symbol.replace(/[^A-Za-z0-9]/g, "")}`;
 }
 
 export function writeReceipt(dir: string, r: ExecReceipt): string {
@@ -260,25 +302,34 @@ export function listReceipts(dir: string): ExecReceipt[] {
     .map((f) => JSON.parse(readFileSync(join(dir, f), "utf8")) as ExecReceipt);
 }
 
-/** Live USDT committed to stock fills on the UTC day of `now` (FILLED, or PENDING with a hash). */
+/**
+ * Live USDT committed to stock buys on the UTC day of `now`: buys that FILLED (or are PENDING with a
+ * hash or order id), plus limit buys PLACED and not since cancelled. Sells spend nothing.
+ */
 export function spentTodayUsd(receipts: ExecReceipt[], now: number): number {
   const day = new Date(now).toISOString().slice(0, 10);
-  return receipts
-    .filter((r) => r.kind === "trade" && r.mode === "live" && r.createdAt.slice(0, 10) === day)
-    .filter((r) => r.outcome === "FILLED" || (r.outcome === "PENDING" && r.swap?.txHash))
+  const today = receipts.filter((r) => r.mode === "live" && r.createdAt.slice(0, 10) === day);
+  const canceled = new Set(today.filter((r) => r.kind === "limit" && r.outcome === "CANCELED" && r.order?.id).map((r) => r.order!.id));
+  const buys = today
+    .filter((r) => r.kind === "trade" && r.side !== "sell")
+    .filter((r) => r.outcome === "FILLED" || (r.outcome === "PENDING" && (r.swap?.txHash || r.order?.id)))
     .reduce((sum, r) => sum + (r.fill?.usdSpent ?? r.usd), 0);
+  const limits = today
+    .filter((r) => r.kind === "limit" && r.outcome === "PLACED" && !(r.order?.id && canceled.has(r.order.id)))
+    .reduce((sum, r) => sum + r.usd, 0);
+  return buys + limits;
 }
 
 // ---------- shared run machinery ----------
 
-interface Run {
+export interface Run<D extends Pick<ExecDeps, "now" | "log"> = ExecDeps> {
   r: ExecReceipt;
-  d: ExecDeps;
+  d: D;
   step(step: string, detail?: string): void;
   broadcast: boolean;
 }
 
-function newRun(kind: ExecReceipt["kind"], symbol: string, usd: number, mode: ExecMode, wallet: string, d: ExecDeps): Run {
+export function newRun<D extends Pick<ExecDeps, "now" | "log">>(kind: ExecReceipt["kind"], symbol: string, usd: number, mode: ExecMode, wallet: string, d: D): Run<D> {
   const now = d.now();
   const r: ExecReceipt = {
     version: 1,
@@ -302,7 +353,7 @@ function newRun(kind: ExecReceipt["kind"], symbol: string, usd: number, mode: Ex
     txDetail: null,
     steps: [],
   };
-  const run: Run = {
+  const run: Run<D> = {
     r,
     d,
     broadcast: false,
@@ -314,7 +365,7 @@ function newRun(kind: ExecReceipt["kind"], symbol: string, usd: number, mode: Ex
   return run;
 }
 
-function commonRails(env: NodeJS.ProcessEnv, wallet: string | undefined): asserts wallet is string {
+export function commonRails(env: NodeJS.ProcessEnv, wallet: string | undefined): asserts wallet is string {
   const kill = env.GAP_EXEC_DISABLED?.trim();
   if (kill && kill !== "0" && kill.toLowerCase() !== "false") throw new Refusal("EXEC_DISABLED", "Execution is disabled by GAP_EXEC_DISABLED.");
   if (!wallet || !/^0x[0-9a-fA-F]{40}$/.test(wallet)) throw new Refusal("NO_WALLET", "GAP_WALLET_ADDRESS is not set to a valid address.");
@@ -372,7 +423,7 @@ function checkSwapTx(s: SwapResponse, wallet: string, router: string, value: str
   return tx;
 }
 
-async function finishRun(run: Run, dir: string | null, err?: unknown): Promise<ExecResult> {
+export async function finishRun(run: Run<Pick<ExecDeps, "now" | "log">>, dir: string | null, err?: unknown): Promise<ExecResult> {
   const { r } = run;
   if (err !== undefined) {
     const code = err instanceof Refusal ? err.code : "ERROR";
@@ -380,7 +431,7 @@ async function finishRun(run: Run, dir: string | null, err?: unknown): Promise<E
     r.refusal = { code, message };
     // Only the swap broadcast matters: an approval alone buys nothing, so a later stop is still a refusal.
     if (!run.broadcast) r.outcome = err instanceof Refusal ? "REFUSED" : "FAILED";
-    else r.outcome = code === "TX_REVERTED" ? "FAILED" : "PENDING";
+    else r.outcome = code === "TX_REVERTED" || code === "ORDER_FAILED" ? "FAILED" : "PENDING";
     run.step(r.outcome === "REFUSED" ? "refused" : "stopped", `${code}: ${message}`);
   }
   return { receipt: r, path: dir ? writeReceipt(dir, r) : null };
@@ -390,6 +441,8 @@ async function finishRun(run: Run, dir: string | null, err?: unknown): Promise<E
 
 export interface ExecOptions {
   usd: number;
+  /** The contract-call path only buys; a sell is refused with SELL_VIA_UNSUPPORTED. */
+  side?: "buy" | "sell";
   live?: boolean;
   wallet?: string;
   policy?: Policy;
@@ -399,7 +452,7 @@ export interface ExecOptions {
   receiptsDir?: string | null;
 }
 
-function requireGo(g: GateResult, policy: Policy, now: number): QuoteOk {
+export function requireGo(g: GateResult, policy: Policy, now: number): QuoteOk {
   const q = g.quote;
   if (q?.ok && q.executionMode && lower(q.executionMode) !== "swap") {
     throw new Refusal("MODE_RFQ_UNSUPPORTED", `The best route is ${q.executionMode}; only SWAP routes are executed (no RFQ route has been seen live).`);
@@ -414,7 +467,7 @@ function requireGo(g: GateResult, policy: Policy, now: number): QuoteOk {
   return q;
 }
 
-function recordGate(r: ExecReceipt, g: GateResult, now: number) {
+export function recordGate(r: ExecReceipt, g: GateResult, now: number) {
   const v = g.verdict;
   const q = g.quote;
   r.venue = { ticker: g.ticker, platform: g.row.platform, address: g.row.address };
@@ -455,8 +508,11 @@ export async function executeTrade(symbol: string, opts: ExecOptions): Promise<E
   const dir = opts.receiptsDir === undefined ? null : opts.receiptsDir;
   const run = newRun("trade", symbol, opts.usd, mode, wallet, d);
   const { r } = run;
+  r.side = opts.side ?? "buy";
+  r.via = "contract-call";
   try {
     commonRails(env, wallet);
+    if (r.side === "sell") throw new Refusal("SELL_VIA_UNSUPPORTED", "Sells go through the Agentic Wallet market order (via market-order); the contract-call path only buys.");
     if (!(opts.usd > 0) || !Number.isFinite(opts.usd)) throw new Refusal("BAD_SIZE", `Size must be a positive USD amount, got ${opts.usd}.`);
     if (opts.usd > policy.maxTradeUsd) throw new Refusal("SIZE_OVER_CAP", `$${opts.usd} is over the $${policy.maxTradeUsd} per-trade cap.`);
     if (mode === "live") {

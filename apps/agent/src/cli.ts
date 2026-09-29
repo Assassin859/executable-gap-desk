@@ -17,8 +17,17 @@ import {
   QUOTE_REASON_TEXT,
   buildMatrix,
   credentialsFromEnv,
+  DEFAULT_DISCOUNT_PCT,
+  buildPositions,
+  cancelTarget,
   defaultExecDeps,
+  defaultMarketDeps,
+  defaultTargetDeps,
+  executeMarketOrder,
   executeTrade,
+  listTargets,
+  placeTarget,
+  reconcileMarketOrder,
   fundUsdt,
   getAssetStatus,
   getLadder,
@@ -426,6 +435,15 @@ const OUTCOME_BADGE: Record<Outcome, string> = {
   REFUSED: pc.bgRed(pc.white(pc.bold(" REFUSED "))),
   FAILED: pc.bgRed(pc.white(pc.bold(" FAILED "))),
   PENDING: pc.bgYellow(pc.black(" PENDING ")),
+  PLACED: pc.bgGreen(pc.black(" PLACED ")),
+  CANCELED: pc.bgCyan(pc.black(" CANCELED ")),
+};
+
+const receiptTitle = (r: ExecReceipt) => {
+  if (r.kind === "funding") return "BNB -> USDT funding";
+  if (r.kind === "limit") return r.outcome === "CANCELED" || r.symbol.startsWith("cancel-") ? `cancel limit ${r.order?.id ?? ""} ${r.symbol.startsWith("cancel-") ? "" : r.symbol}`.trim() : `limit buy ${r.symbol}  $${r.usd}`;
+  const side = r.side === "sell" ? "SELL" : "BUY";
+  return `${side} ${r.symbol}  $${r.usd}${r.via ? pc.dim(` via ${r.via}`) : ""}`;
 };
 
 async function promptConfirm(summary: string, yes: boolean): Promise<boolean> {
@@ -448,7 +466,7 @@ const stepLog = (step: string, detail?: string) => process.stderr.write(`${pc.di
 
 function printReceipt(r: ExecReceipt, path: string | null) {
   console.log();
-  console.log(`${OUTCOME_BADGE[r.outcome]} ${pc.bold(r.kind === "funding" ? "BNB -> USDT funding" : `${r.symbol}  $${r.usd}`)} ${pc.dim(`(${r.mode})`)}`);
+  console.log(`${OUTCOME_BADGE[r.outcome]} ${pc.bold(receiptTitle(r))} ${pc.dim(`(${r.mode})`)}`);
   if (r.refusal) console.log(`  ${pc.red(`${r.refusal.code}: ${r.refusal.message}`)}`);
   if (r.gate) {
     console.log(`  gate        ${verdictBadge(r.gate.verdict)} ${r.gate.session ? SESSION_TEXT[r.gate.session] : ""}  ${pc.dim(`stock ${usd(r.gate.reference)}, displayed ${pct(r.gate.displayedGapPct)}, executable ${pct(r.gate.executableGapPct)}`)}`);
@@ -456,14 +474,24 @@ function printReceipt(r: ExecReceipt, path: string | null) {
       .filter((x) => x.severity !== "info")
       .forEach((x, i) => console.log(`              ${i + 1}. ${(x.severity === "block" ? pc.red : pc.yellow)(x.message)}`));
   }
-  if (r.quote && r.kind === "trade") {
-    console.log(`  quote       ${r.quote.tokensOut.toPrecision(6)} tokens at ${usd(r.quote.fillPerShare)}/share  ${pc.dim(`${r.quote.executionMode} / ${r.quote.vendorName}, ${r.quote.route.join(" > ")}`)}`);
+  if (r.quote && r.kind !== "funding") {
+    const verb = r.side === "sell" ? "sell" : "buy";
+    console.log(`  quote       ${verb} ${r.quote.tokensOut.toPrecision(6)} tokens at ${usd(r.quote.fillPerShare)}/share  ${pc.dim(`${r.quote.executionMode} / ${r.quote.vendorName}, ${r.quote.route.join(" > ")}`)}`);
   }
+  if (r.walletQuote) {
+    const w = r.walletQuote;
+    console.log(`  wallet      ${w.fromQty} -> ${w.toQty} = ${usd(w.fillPerShare)}/share  ${pc.dim(`${pct(w.deviationPct)} vs the gated quote, ${pct(w.gapPct)} vs the stock`)}`);
+  }
+  if (r.limit) {
+    const l = r.limit;
+    console.log(`  trigger     $${l.triggerPriceUsd.toFixed(4)} per token${l.discountPct ? ` (${l.discountPct}% under the stock)` : ""}${l.walletPricePerToken ? pc.dim(`, wallet price now $${l.walletPricePerToken.toFixed(4)}`) : ""}`);
+  }
+  if (r.order) console.log(`  order       ${r.order.id} ${pc.dim(r.order.status)}`);
   if (r.approval) {
     const a = r.approval;
     console.log(`  approval    ${a.needed ? `exact ${Number(a.amount) / 1e18} USDT to ${a.spender}` : pc.dim("not needed (allowance covers the trade)")}${a.txHash ? `  ${pc.cyan(a.bscscan ?? a.txHash)}` : ""}`);
   }
-  if (r.swap) {
+  if (r.swap && r.via !== "market-order") {
     const worst = r.swap.worstCaseGapPct === null ? "" : pc.dim(`, worst case at ${r.swap.slippagePct}% slippage ${pct(r.swap.worstCaseGapPct)} vs the stock`);
     console.log(`  swap        to ${r.swap.to}${worst}`);
   }
@@ -476,35 +504,197 @@ function printReceipt(r: ExecReceipt, path: string | null) {
   if (r.swap?.txHash) console.log(`  tx          ${pc.cyan(r.swap.bscscan ?? r.swap.txHash)}  ${pc.dim(`gas ${r.swap.gasCostBnb?.toFixed(8) ?? "?"} BNB`)}`);
   if (r.fill && r.kind === "trade") {
     const f = r.fill;
-    console.log(`  fill        ${f.tokensOut.toPrecision(6)} ${r.symbol} for ${f.usdSpent.toFixed(4)} USDT = ${usd(f.fillPerShare)}/share  quoted ${usd(f.quotedFillPerShare)}  realized vs quoted ${pct(f.realizedVsQuotedPct)}  vs stock ${pct(f.realizedGapPct)}`);
+    const what = r.side === "sell" ? `sold ${f.tokensOut.toPrecision(6)} ${r.symbol} for ${(f.usdReceived ?? 0).toFixed(4)} USDT` : `${f.tokensOut.toPrecision(6)} ${r.symbol} for ${f.usdSpent.toFixed(4)} USDT`;
+    console.log(`  fill        ${what} = ${usd(f.fillPerShare)}/share  quoted ${usd(f.quotedFillPerShare)}  realized vs quoted ${pct(f.realizedVsQuotedPct)}  vs stock ${pct(f.realizedGapPct)}${f.source === "balance-change" ? pc.dim("  (from balance change)") : ""}`);
   }
   if (r.fill && r.kind === "funding") console.log(`  received    ${r.fill.tokensOut.toFixed(4)} USDT`);
   if (path) console.log(pc.dim(`  receipt     ${relative(repoRoot, path)}`));
 }
 
+interface ExecCliOpts {
+  usd?: string;
+  qty?: string;
+  all?: boolean;
+  side: string;
+  via: string;
+  live?: boolean;
+  simulateOnly?: boolean;
+  yes?: boolean;
+  json?: boolean;
+}
+
+function liveFlag(opts: { live?: boolean; simulateOnly?: boolean; yes?: boolean }): boolean {
+  if (opts.live && opts.simulateOnly) throw new Error("--live and --simulate-only cannot be combined.");
+  if (opts.yes && !opts.live) throw new Error("--yes only applies with --live.");
+  const live = opts.live === true && process.env.DRY_RUN !== "1";
+  if (opts.live && !live) console.error(pc.yellow("DRY_RUN=1 is set; running as a dry run."));
+  return live;
+}
+
+function finishCli(receipt: ExecReceipt, path: string | null, json?: boolean, ok: Outcome[] = ["FILLED", "SIMULATED"]) {
+  if (json) console.log(JSON.stringify(receipt, null, 2));
+  else printReceipt(receipt, path);
+  if (!ok.includes(receipt.outcome)) process.exitCode = 1;
+}
+
 program
   .command("exec")
-  .description("Buy a venue token with USDT, only on a fresh GO verdict. Dry run unless --live.")
+  .description("Buy (or sell) a venue token, only on a fresh GO verdict. Dry run unless --live.")
   .argument("<symbol>", "venue symbol, e.g. NVDAB (not a ticker)")
-  .requiredOption("--usd <amount>", "USDT to spend")
-  .option("--live", "sign and broadcast with the Agentic Wallet (default: dry run)")
+  .option("--usd <amount>", "buy: USDT to spend; sell: USD value to sell")
+  .option("--qty <tokens>", "sell: exact token quantity")
+  .option("--all", "sell: the whole on-chain balance")
+  .option("--side <side>", "buy or sell", "buy")
+  .option("--via <route>", "contract-call (router tx signed by the wallet) or market-order (baw market-order swap)", "contract-call")
+  .option("--live", "send with the Agentic Wallet (default: dry run)")
   .option("--simulate-only", "explicit dry run; cannot be combined with --live")
   .option("--yes", "skip the typed confirmation (only with --live)")
   .option("--json", "print the receipt JSON")
-  .action(async (symbol: string, opts: { usd: string; live?: boolean; simulateOnly?: boolean; yes?: boolean; json?: boolean }) => {
-    if (opts.live && opts.simulateOnly) throw new Error("--live and --simulate-only cannot be combined.");
-    if (opts.yes && !opts.live) throw new Error("--yes only applies with --live.");
-    const live = opts.live === true && process.env.DRY_RUN !== "1";
-    if (opts.live && !live) console.error(pc.yellow("DRY_RUN=1 is set; running as a dry run."));
+  .action(async (symbol: string, opts: ExecCliOpts) => {
+    const live = liveFlag(opts);
+    if (opts.side !== "buy" && opts.side !== "sell") throw new Error(`--side must be buy or sell, got ${opts.side}.`);
+    if (opts.via !== "contract-call" && opts.via !== "market-order") throw new Error(`--via must be contract-call or market-order, got ${opts.via}.`);
+    const confirm = (s: string) => promptConfirm(s, opts.yes === true);
+    if (opts.via === "market-order") {
+      const { receipt, path } = await executeMarketOrder(symbol, {
+        side: opts.side,
+        usd: opts.usd === undefined ? undefined : Number(opts.usd),
+        qty: opts.qty,
+        all: opts.all,
+        live,
+        receiptsDir,
+        deps: { ...defaultMarketDeps(), confirm, log: stepLog },
+      });
+      return finishCli(receipt, path, opts.json);
+    }
+    if (opts.side === "buy" && (opts.qty !== undefined || opts.all)) throw new Error("--qty and --all are for sells.");
+    if (opts.side === "buy" && opts.usd === undefined) throw new Error("--usd is required for a buy.");
     const { receipt, path } = await executeTrade(symbol, {
-      usd: Number(opts.usd),
+      usd: Number(opts.usd ?? 0),
+      side: opts.side,
       live,
       receiptsDir,
-      deps: { ...defaultExecDeps(), confirm: (s) => promptConfirm(s, opts.yes === true), log: stepLog },
+      deps: { ...defaultExecDeps(), confirm, log: stepLog },
     });
-    if (opts.json) console.log(JSON.stringify(receipt, null, 2));
-    else printReceipt(receipt, path);
-    if (receipt.outcome !== "FILLED" && receipt.outcome !== "SIMULATED") process.exitCode = 1;
+    finishCli(receipt, path, opts.json);
+  });
+
+program
+  .command("reconcile")
+  .description("Settle PENDING market-order receipts: find the order and read the real fill from its transaction")
+  .argument("[id]", "receipt id (default: every PENDING market-order receipt)")
+  .option("--json", "print the receipt JSON")
+  .action(async (id: string | undefined, opts: { json?: boolean }) => {
+    const pending = listReceipts(receiptsDir).filter((r) => r.via === "market-order" && r.outcome === "PENDING" && (!id || r.id === id));
+    if (!pending.length) {
+      console.log(pc.dim(id ? `No PENDING market-order receipt ${id}.` : "No PENDING market-order receipts."));
+      return;
+    }
+    for (const r of pending) {
+      const { receipt, path } = await reconcileMarketOrder(r, { receiptsDir, deps: { ...defaultMarketDeps(), log: stepLog } });
+      finishCli(receipt, path, opts.json);
+    }
+  });
+
+program
+  .command("positions")
+  .description("Wallet holdings with what each would fetch if sold now, gated like an exit")
+  .option("--warn-open", "warn (exit code 3) if the US open is within 60 min outside the regular session, or any exit is BLOCK")
+  .option("--json", "print JSON")
+  .action(async (opts: { warnOpen?: boolean; json?: boolean }) => {
+    const wallet = process.env.GAP_WALLET_ADDRESS ?? "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) throw new Error("GAP_WALLET_ADDRESS is not set to a valid address.");
+    const p = await buildPositions(wallet);
+    if (opts.json) console.log(JSON.stringify(p, null, 2));
+    else {
+      const table = new Table({ head: ["Token", "Venue", "Qty", "Displayed value", "Stock value", "Exit now", "Verdict"] });
+      for (const s of p.stocks) {
+        const exit = s.exit.usd === null ? pc.dim("no quote") : `${usd(s.exit.usd)} ${pc.dim(`${usd(s.exit.fillPerShare)}/sh ${pct(s.exit.gapPct)}`)}`;
+        table.push([
+          pc.bold(s.symbol),
+          platformLabel(s.platform),
+          Number(s.qty).toPrecision(6),
+          usd(s.displayedValue),
+          usd(s.stockValue),
+          exit,
+          `${verdictBadge(s.exit.verdict)}${s.exit.verdict === "GO" ? "" : `\n${pc.dim((s.exit.reasons[0] ?? "").slice(0, 60))}`}`,
+        ]);
+      }
+      for (const o of p.other) table.push([o.symbol, pc.dim("-"), Number(o.qty).toPrecision(6), usd(o.valueUsd), pc.dim("-"), pc.dim("-"), pc.dim("-")]);
+      console.log(table.toString());
+      const t = p.totals;
+      console.log(
+        `Stocks: displayed ${usd(t.displayed)}, at the stock price ${usd(t.stock)}, exit now ${usd(t.exitNow)}. Other: ${usd(t.other)}.` +
+          pc.dim(` | ${p.session ? SESSION_TEXT[p.session.name as SessionName] : "session unavailable"}`) +
+          (p.quota ? pc.dim(` | wallet quota left today $${p.quota.quotaLeft.toLocaleString("en-US")} of $${p.quota.dailyLimit.toLocaleString("en-US")}`) : ""),
+      );
+    }
+    if (opts.warnOpen) {
+      for (const w of p.warnings) console.error(pc.yellow(`warning: ${w}`));
+      if (p.warnings.length) process.exitCode = 3;
+      else if (!opts.json) console.log(pc.green("No open-gap warnings."));
+    }
+  });
+
+program
+  .command("target")
+  .description("Gap-guarded limit buy: only on a GO venue, trigger under the stock and under the market. Dry run unless --live.")
+  .argument("<symbol>", "venue symbol, e.g. AAPLB")
+  .requiredOption("--usd <amount>", "USDT to commit")
+  .option("--discount <pct>", "percent under the stock price per token", String(DEFAULT_DISCOUNT_PCT))
+  .option("--live", "place it with the Agentic Wallet (default: dry run)")
+  .option("--yes", "skip the typed confirmation (only with --live)")
+  .option("--json", "print the receipt JSON")
+  .action(async (symbol: string, opts: { usd: string; discount: string; live?: boolean; yes?: boolean; json?: boolean }) => {
+    const live = liveFlag(opts);
+    const { receipt, path } = await placeTarget(symbol, {
+      usd: Number(opts.usd),
+      discountPct: Number(opts.discount),
+      live,
+      receiptsDir,
+      deps: { ...defaultTargetDeps(), confirm: (s) => promptConfirm(s, opts.yes === true), log: stepLog },
+    });
+    finishCli(receipt, path, opts.json, ["PLACED", "SIMULATED"]);
+  });
+
+program
+  .command("targets")
+  .description("List WORKING limit orders re-gated now, or cancel one with --cancel ID")
+  .option("--cancel <id>", "strategy id to cancel (dry run unless --live)")
+  .option("--live", "with --cancel: cancel it")
+  .option("--yes", "skip the typed confirmation (only with --live)")
+  .option("--json", "print JSON")
+  .action(async (opts: { cancel?: string; live?: boolean; yes?: boolean; json?: boolean }) => {
+    if (opts.cancel) {
+      const live = liveFlag(opts);
+      const { receipt, path } = await cancelTarget(opts.cancel, {
+        live,
+        receiptsDir,
+        deps: { ...defaultTargetDeps(), confirm: (s) => promptConfirm(s, opts.yes === true), log: stepLog },
+      });
+      return finishCli(receipt, path, opts.json, ["CANCELED", "SIMULATED"]);
+    }
+    const rows = await listTargets();
+    if (opts.json) {
+      console.log(JSON.stringify(rows, null, 2));
+      return;
+    }
+    if (!rows.length) {
+      console.log(pc.dim("No WORKING limit orders."));
+      return;
+    }
+    const table = new Table({ head: ["Strategy", "Token", "USDT", "Trigger", "Gate now", "Suggestion"] });
+    for (const t of rows) {
+      table.push([
+        t.order.id,
+        t.symbol ?? pc.dim("?"),
+        t.usd === null ? pc.dim("?") : String(t.usd),
+        t.triggerPriceUsd === null ? pc.dim("?") : `$${t.triggerPriceUsd}`,
+        t.verdict ? verdictBadge(t.verdict) : pc.dim("n/a"),
+        t.cancelSuggested ? pc.yellow(`cancel suggested: ${(t.why ?? "").slice(0, 60)}`) : pc.green("keep"),
+      ]);
+    }
+    console.log(table.toString());
   });
 
 program
@@ -546,13 +736,17 @@ program
     for (const r of all) {
       table.push([
         r.createdAt.slice(0, 19).replace("T", " "),
-        r.kind === "funding" ? `fund $${r.usd} USDT` : `${r.symbol} $${r.usd}`,
+        r.kind === "funding"
+          ? `fund $${r.usd} USDT`
+          : r.kind === "limit"
+            ? `${r.outcome === "CANCELED" || r.symbol.startsWith("cancel-") ? "cancel" : "limit"} ${r.symbol.replace(/^cancel-/, "")} $${r.usd}`
+            : `${r.side === "sell" ? "sell" : "buy"} ${r.symbol} $${r.usd}${r.via === "market-order" ? pc.dim(" mkt") : ""}`,
         r.mode,
         OUTCOME_BADGE[r.outcome],
         r.gate ? VERDICT_SHORT[r.gate.verdict](r.gate.verdict) : pc.dim("-"),
         r.fill?.fillPerShare ? usd(r.fill.fillPerShare) : pc.dim("-"),
         r.fill?.realizedVsQuotedPct !== undefined && r.fill?.realizedVsQuotedPct !== null ? pct(r.fill.realizedVsQuotedPct) : pc.dim("-"),
-        r.swap?.txHash ? pc.cyan(r.swap.txHash.slice(0, 18) + "…") : r.refusal ? pc.red(r.refusal.code) : pc.dim("-"),
+        r.swap?.txHash ? pc.cyan(r.swap.txHash.slice(0, 18) + "…") : r.refusal ? pc.red(r.refusal.code) : r.order ? pc.dim(`order ${r.order.id}`) : pc.dim("-"),
       ]);
     }
     console.log(table.toString());

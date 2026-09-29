@@ -13,4 +13,8 @@ export * from "./publicSnapshot";
 export * from "./trade";
 export * from "./chain";
 export * from "./baw";
+export * from "./bawWallet";
 export * from "./execute";
+export * from "./marketOrder";
+export * from "./positions";
+export * from "./targets";

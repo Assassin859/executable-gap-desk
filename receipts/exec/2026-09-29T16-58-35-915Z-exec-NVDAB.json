@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "id": "2026-09-29T16-58-35-915Z-exec-NVDAB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T16:58:35.915Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "NVDAB",
+  "venue": {
+    "ticker": "NVDA",
+    "platform": "bstocks",
+    "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"
+  },
+  "usd": 1.498498,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "You receive +0.09% vs the stock ($229.56 per share vs the stock at $229.35)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 229.3475,
+    "displayedGapPct": 0.00031611419352737364,
+    "executableGapPct": 0.0009106866038720591,
+    "fillPerShare": 229.55636369588154,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.00652272418519444,
+    "fillPerShare": 229.55636369588154,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "NVDAB",
+      "QQQB",
+      "USDT"
+    ],
+    "vendorPriceImpact": 0.0012553088,
+    "networkFeeUsd": 0.0176294,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "41934267991288669",
+    "bnb": "1114125284880510",
+    "allowance": "0",
+    "token": "6522724185194440"
+  },
+  "approval": null,
+  "swap": null,
+  "simulation": null,
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T16:58:37.502Z",
+      "step": "gate",
+      "detail": "sell 0.00652272418519444 NVDAB"
+    },
+    {
+      "at": "2026-09-29T16:58:37.716Z",
+      "step": "gate passed",
+      "detail": "GO, receive +0.09% vs the stock"
+    },
+    {
+      "at": "2026-09-29T16:58:38.292Z",
+      "step": "wallet quote checked",
+      "detail": "$229.38/share (-0.08% vs the gated quote)"
+    },
+    {
+      "at": "2026-09-29T16:58:38.733Z",
+      "step": "dry run: wallet quote checked; not sent",
+      "detail": "pass --live to send the market order"
+    }
+  ],
+  "side": "sell",
+  "via": "market-order",
+  "walletQuote": {
+    "fromQty": "0.00652272418519444",
+    "toQty": "1.497332883051080692",
+    "fillPerShare": 229.3778621759831,
+    "deviationPct": -0.000777593428579193,
+    "gapPct": 0.00013238503137422608
+  }
+}

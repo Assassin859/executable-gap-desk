@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "id": "2026-09-29T17-11-37-685Z-limit-AAPLB",
+  "kind": "limit",
+  "createdAt": "2026-09-29T17:11:37.685Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "AAPLB",
+  "venue": {
+    "ticker": "AAPL",
+    "platform": "bstocks",
+    "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a"
+  },
+  "usd": 1,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is +0.02% off the stock ($331.34 per share vs the stock at $331.28)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 331.275,
+    "displayedGapPct": 0.0001358388046185674,
+    "executableGapPct": 0.0001962961056248343,
+    "fillPerShare": 331.34002799239084,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.003016226154329152,
+    "fillPerShare": 331.34002799239084,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "AAPLB"
+    ],
+    "vendorPriceImpact": 0.0003794847,
+    "networkFeeUsd": 0.01971503,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": null,
+  "approval": null,
+  "swap": null,
+  "simulation": null,
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T17:11:39.252Z",
+      "step": "gate",
+      "detail": "AAPLB at $1"
+    },
+    {
+      "at": "2026-09-29T17:11:39.468Z",
+      "step": "gate passed",
+      "detail": "GO, fill +0.02% vs the stock"
+    },
+    {
+      "at": "2026-09-29T17:11:40.108Z",
+      "step": "trigger set",
+      "detail": "$324.8456 per token (2% under the stock at $331.4751/token; wallet price $331.3400)"
+    },
+    {
+      "at": "2026-09-29T17:11:40.108Z",
+      "step": "dry run: limit order not placed",
+      "detail": "pass --live to place it with the Agentic Wallet"
+    }
+  ],
+  "side": "buy",
+  "via": "market-order",
+  "limit": {
+    "triggerPriceUsd": 324.845557,
+    "discountPct": 2,
+    "qty": "1",
+    "walletPricePerToken": 331.3400279923909
+  }
+}

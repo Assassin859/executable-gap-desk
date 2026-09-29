@@ -19,6 +19,10 @@ export class BawError extends Error {
   }
 }
 
+/** baw answered with `success: false`: the request was refused. A timeout or unreadable output is not a rejection. */
+export const isBawRejection = (e: unknown): e is BawError =>
+  e instanceof BawError && typeof e.body === "object" && e.body !== null && (e.body as { success?: unknown }).success === false;
+
 /**
  * On Windows `baw` is an npm .cmd shim, and spawning .cmd files requires a shell that would
  * concatenate calldata into a command line. Run the package's JS entry with node instead.

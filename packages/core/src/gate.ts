@@ -2,7 +2,7 @@ import { z } from "zod";
 import defaultPolicyJson from "../policy/default.json" with { type: "json" };
 import type { Platform } from "./config";
 import type { MatrixRow } from "./matrix";
-import { QUOTE_REASON_TEXT, ladderImpact, type ExecQuote, type QuoteOk } from "./quotes";
+import { QUOTE_REASON_TEXT, ladderImpact, type ExecQuote, type QuoteOk, type Side } from "./quotes";
 import type { SessionName } from "./session";
 
 export type Verdict = "GO" | "CAUTION" | "BLOCK";
@@ -27,6 +27,12 @@ export const PolicySchema = z
     maxDailySpendUsd: z.number().positive(),
     /** Execution only: `/swap` slippage in percent (0.5 = 0.5%), which sets `minReceiveAmount`. */
     slippagePct: z.number().positive().max(5),
+    /** Execution only: USDT committed per gap-guarded limit buy. */
+    maxLimitOrderUsd: z.number().positive(),
+    /** Execution only: how far the Agentic Wallet's market-order quote may sit from the gated aggregator quote. */
+    maxWalletQuoteDeviationPct: frac,
+    /** Execution only: how long to poll a market order before recording it as PENDING. */
+    marketOrderTimeoutSec: z.number().positive(),
   })
   .refine((p) => p.goMaxGapPct < p.cautionMaxGapPct, { message: "goMaxGapPct must be below cautionMaxGapPct" });
 export type Policy = z.infer<typeof PolicySchema>;
@@ -116,7 +122,8 @@ export function evaluateVenue(input: VenueInput, ctx: GateContext, policy: Polic
   const reasons: GateReason[] = [];
   const add = (code: GateCode, severity: Severity, message: string) => reasons.push({ code, severity, message });
   const ok: QuoteOk | null = q?.ok ? q : null;
-  const impactPct = ok ? ladderImpact([ok, ...(input.ladder ?? [])]) : {};
+  const sell = q?.side === "sell";
+  const impactPct = ok && !sell ? ladderImpact([ok, ...(input.ladder ?? [])]) : {};
 
   if (!q) add("NO_QUOTE", "block", "No executable quote was fetched for this venue.");
   else if (!q.ok) add("QUOTE_ERROR", "block", `Quote failed: ${QUOTE_REASON_TEXT[q.reason]} (${q.code ?? "no code"}).`);
@@ -145,9 +152,10 @@ export function evaluateVenue(input: VenueInput, ctx: GateContext, policy: Polic
     } else {
       const gap = (ok.fillPerShare - ref) / ref;
       const vs = `${money(ok.fillPerShare)} per share vs the stock at ${money(ref)}`;
-      if (Math.abs(gap) > policy.cautionMaxGapPct) add("GAP_TOO_WIDE", "block", `Fill is ${p2(gap)} off the stock (${vs}); the limit is ±${lim(policy.cautionMaxGapPct)}.`);
-      else if (Math.abs(gap) > policy.goMaxGapPct) add("GAP_WIDE", "caution", `Fill is ${p2(gap)} off the stock (${vs}); GO needs ±${lim(policy.goMaxGapPct)}.`);
-      else add("GAP_OK", "info", `Fill is ${p2(gap)} off the stock (${vs}).`);
+      const lead = sell ? `You receive ${p2(gap)} vs the stock` : `Fill is ${p2(gap)} off the stock`;
+      if (Math.abs(gap) > policy.cautionMaxGapPct) add("GAP_TOO_WIDE", "block", `${lead} (${vs}); the limit is ±${lim(policy.cautionMaxGapPct)}.`);
+      else if (Math.abs(gap) > policy.goMaxGapPct) add("GAP_WIDE", "caution", `${lead} (${vs}); GO needs ±${lim(policy.goMaxGapPct)}.`);
+      else add("GAP_OK", "info", `${lead} (${vs}).`);
 
       if (row.displayedGapPct !== null) {
         const diff = Math.abs(row.displayedGapPct - gap);
@@ -158,9 +166,15 @@ export function evaluateVenue(input: VenueInput, ctx: GateContext, policy: Polic
     }
 
     if (row.perShare !== null && row.perShare > 0) {
-      const spread = ok.fillPerShare / row.perShare - 1;
+      const spread = sell ? 1 - ok.fillPerShare / row.perShare : ok.fillPerShare / row.perShare - 1;
       if (spread > policy.maxSpreadAtBasePct) {
-        add("SPREAD_AT_BASE", "block", `At ${money(ok.usd)} you pay ${p2(spread)} over the venue's displayed price (limit ${lim(policy.maxSpreadAtBasePct)}).`);
+        add(
+          "SPREAD_AT_BASE",
+          "block",
+          sell
+            ? `Selling ${money(ok.usd)} you receive ${lim(spread)} under the venue's displayed price (limit ${lim(policy.maxSpreadAtBasePct)}).`
+            : `At ${money(ok.usd)} you pay ${p2(spread)} over the venue's displayed price (limit ${lim(policy.maxSpreadAtBasePct)}).`,
+        );
       }
     }
 
@@ -198,23 +212,25 @@ export function venueDisagreement(quotes: Array<ExecQuote | null | undefined>): 
   return (Math.max(...fills) - min) / min;
 }
 
-/** Best venue: GO before CAUTION, then the lowest fill per share. BLOCK venues are never chosen. */
-export function pickBest(venues: VenueVerdict[]): VenueVerdict | null {
+/** Best venue: GO before CAUTION, then the lowest price for a buy or the highest for a sell. BLOCK venues are never chosen. */
+export function pickBest(venues: VenueVerdict[], side: Side = "buy"): VenueVerdict | null {
+  const dir = side === "sell" ? -1 : 1;
   return (
     venues
       .filter((v) => v.verdict !== "BLOCK" && v.fillPerShare !== null)
-      .sort((a, b) => RANK[a.verdict] - RANK[b.verdict] || a.fillPerShare! - b.fillPerShare!)[0] ?? null
+      .sort((a, b) => RANK[a.verdict] - RANK[b.verdict] || dir * (a.fillPerShare! - b.fillPerShare!))[0] ?? null
   );
 }
 
 export function evaluateTicker(inputs: VenueInput[], ctx: Omit<GateContext, "venueDisagreementPct">, policy: Policy = DEFAULT_POLICY): TickerVerdict {
   const disagreement = venueDisagreement(inputs.map((i) => i.quote));
   const venues = inputs.map((i) => evaluateVenue(i, { ...ctx, venueDisagreementPct: disagreement }, policy));
+  const side: Side = inputs.some((i) => i.quote?.side === "sell") ? "sell" : "buy";
   return {
     ticker: inputs[0]?.row.ticker ?? "",
     reference: inputs[0]?.row.reference ?? null,
     session: ctx.session,
     venues,
-    bestVenue: pickBest(venues),
+    bestVenue: pickBest(venues, side),
   };
 }
