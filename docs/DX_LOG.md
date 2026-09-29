@@ -27,6 +27,13 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 | 19 | 2026-09-29 | Trading docs | Medium | `tradeFee` is the network fee in USD and `estimateGasFee` is a gas limit; neither is documented |
 | 20 | 2026-09-29 | Trading docs | Medium | No response schema for `/quote`; fields had to be reverse-engineered |
 | 21 | 2026-09-29 | Gateway | Medium | A 5-token burst plus refill trips the 5 RPS endpoint limit (`42900`) |
+| 22 | 2026-09-29 | `baw` docs | Low | Docs say `contract-call` takes no gas limit; CLI 1.10.0 has `--gasLimit` |
+| 23 | 2026-09-29 | Trading API | High | `/swap` suggests a fixed 450,000 gas; a live NVDAB swap used 487,900 |
+| 24 | 2026-09-29 | Trading API | High | Fresh LiquidMesh quotes fail their own 0.5% minimum in simulation ("Min return not reached") |
+| 25 | 2026-09-29 | Trading API | Medium | A Lifi fill landed 0.50% below its quote and simulation, at the minimum |
+| 26 | 2026-09-29 | Transaction API | Medium | `/simulate` reverts are HTTP 200 `status: FAILED`; no response schema |
+| 27 | 2026-09-29 | Trading docs | Low | `/swap` response is undocumented (`gas` vs `gasLimit`, duplicate fee fields, which contract to approve) |
+| 28 | 2026-09-29 | `baw` | Medium | `contract-call preview` returns token amounts as JSON numbers and loses precision |
 
 ---
 
@@ -213,3 +220,62 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 - **Actual:** `42900` on SPYon. A burst of 5 plus refill puts up to 9 requests into one 1-second window. The docs don't say whether the window is fixed or sliding, so a client can't tell which rate is safe.
 - **Workaround:** space requests evenly at 4.5 RPS with no burst, and wait at least 1 s after a 429. The full 271-venue sweep then finished in 73 s with zero `42900`s.
 - **Suggested fix:** state the window type and give a recommended client pacing.
+
+## 22. Docs say `contract-call` takes no gas limit; the CLI has `--gasLimit`
+
+- **Repro:** `baw contract-call preview --help` (v1.10.0) lists a `--gasLimit` option. The wallet docs (line 6295 of `llms-full.txt`) say: "**Do not pass gas settings.** `contract-call` accepts no gas limit, gas price or gas option."
+- **Expected:** docs and CLI agree.
+- **Actual:** the flag exists but is undocumented, and the docs forbid it. An integrator can't tell whether it is honored, ignored or reserved.
+- **Suggested fix:** document `--gasLimit` (and when to use it), or remove it from the CLI.
+
+## 23. `/swap` suggests a fixed 450,000 gas; a live swap used more
+
+- **Repro:** our three live swaps on 2026-09-29 (receipts in `receipts/exec/`). `/swap` returned `tx.gas = "450000"` for every route, the same constant as `estimateGasFee` in `/quote` (#19).
+
+  | Swap | `/swap` gas | Gas used | Wallet gas limit | `/swap` gas price | Price paid |
+  |------|-------------|----------|------------------|-------------------|------------|
+  | BNB to USDT (Lifi) | 450,000 | 367,670 | n/a | 0.060 gwei | n/a |
+  | USDT to NVDAB (LiquidMesh, 2 hops) | 450,000 | **487,900** | 746,269 | 0.053 gwei | 0.069 gwei |
+  | USDT to AAPLB (LiquidMesh, direct) | 450,000 | 358,376 | 548,900 | 0.053 gwei | 0.112 gwei |
+
+- **Expected:** a per-route gas estimate that the transaction fits in.
+- **Actual:** the NVDAB swap used 8% more than the suggested limit. A client that signs the `/swap` transaction as returned (or broadcasts it through `/pre-transaction/broadcast-transaction`) runs out of gas and pays for a revert. The Agentic Wallet re-estimates gas (limit about 1.5x usage) and prices it up to 2.1x the `/swap` gas price, so it was fine here.
+- **Suggested fix:** estimate gas per route (the API already has `/pre-transaction/gas-limit`), or document that `tx.gas` is a placeholder that must be re-estimated.
+
+## 24. Fresh LiquidMesh quotes fail their own 0.5% minimum in simulation
+
+- **Repro:** `gap exec NVDAB --usd 1.5 --live` and `gap fund --bnb 0.0033 --live` at 15:24–15:26 UTC. Each run takes a fresh `/quote`, builds `/swap` with `slippagePercent=0.5`, then calls `/pre-transaction/simulate` for the wallet.
+- **Expected:** a transaction built seconds after a quote passes simulation at 0.5% slippage on a $1.50 trade.
+- **Actual:** three of six live attempts simulated as `FAILED: execution reverted: Min return not reached`. All three were LiquidMesh routes: one BNB to USDT, and two USDT to BTCB to USDC to WBNB to NVDAB (four hops for $1.50). A read-only probe that rebuilt the same NVDAB route at 3% slippage simulated fine, delivering only 0.14–0.27% below the quote, well inside 0.5%. The revert is probably a per-hop minimum inside the router, but the reason names no hop and no amounts. Within two minutes the aggregator picked other routes (Lifi for BNB to USDT; USDT to QQQB to NVDAB) and the same trades simulated and filled.
+- **Impact:** a client that skips simulation pays gas for a revert. Our executor refuses before signing (`SIMULATION_FAILED`, receipts kept), which is why it simulates every transaction.
+- **Suggested fix:** simulate the chosen route before returning it from `/quote`/`/swap`, prefer shorter routes at small sizes, and include the failing hop and amounts in the revert reason.
+
+## 25. A Lifi fill landed 0.50% below its quote and simulation
+
+- **Repro:** the live funding swap `0xe09f6292…` (receipt `2026-09-29T15-24-59-700Z-fund-BNBUSDT.json`): 0.0033 BNB to USDT through Lifi.
+- **Expected:** a fill close to the quote and to a simulation run a few seconds earlier, as our LiquidMesh fills were (NVDAB 0.02% better than quoted, AAPLB 0.02% worse).
+- **Actual:** quote 2.50441 USDT, simulation 2.50441 USDT, received 2.49193 USDT. That is 0.50% lower, and only 0.00004 USDT above the `minReceiveAmount` of 2.49189. It looks as if the whole slippage allowance was taken, but nothing in the quote, swap or transaction-detail response says who kept the difference.
+- **Suggested fix:** document how positive and negative slippage is handled per vendor, and return the vendor fee and any surplus capture in `/swap` and in the transaction detail.
+
+## 26. `/simulate` reverts are HTTP 200 with `status: FAILED`, and there is no response schema
+
+- **Repro:** `POST /build/api/v1/dex/pre-transaction/simulate` with a swap from a wallet that holds no USDT (fixture `packages/core/test/fixtures/trade.json`, `usdtNvdab.simulate`).
+- **Expected:** the response fields documented, including the status values and how a revert is reported.
+- **Actual:** the docs (line 8377) describe the endpoint in one paragraph. A revert comes back as a successful API response (HTTP 200, no error code) with `data.status: "FAILED"` and `failReason: "execution reverted: BEP20: transfer amount exceeds balance"`. `balanceChanges[].change` is a signed base-unit string. None of this is written down, and a client that only checks `success` treats a revert as a pass.
+- **Suggested fix:** publish the response schema (`status` enum, `failReason`, the sign and units of `change`, `allowanceChanges` shape) and say explicitly that `success` refers to the API call, not the transaction.
+
+## 27. `/swap` response is undocumented
+
+- **Repro:** any `GET /build/api/v1/dex/aggregator/swap` (fixture `trade.json`).
+- **Actual:**
+  - `tx.gas` is the gas limit, but `/simulate`, `/gas-limit` and `/broadcast-transaction` all take `evmTx.gasLimit`, so every client has to rename it.
+  - `tx.gasPrice` and `tx.maxPriorityFeePerGas` are always equal, and it isn't said which one to use for a legacy or EIP-1559 transaction.
+  - `tx.to`, the quote's `approveTarget` and `/approve-transaction`'s `dexContractAddress` were always the same router (`0xB444…DdA5`). That makes a useful safety check (approve exactly the contract you will call), but it isn't documented, so a client can't rely on it.
+- **Suggested fix:** a field table for `/swap` like the request parameters have, and a statement that the spender to approve is `tx.to`.
+
+## 28. `contract-call preview` returns token amounts as JSON numbers
+
+- **Repro:** build a 0.0001 BNB to USDT swap with `/swap`, then run both `/pre-transaction/simulate` and `baw contract-call preview --binanceChainId 56 ... --json` on the same transaction (preview only, never executed). `/simulate` reports the USDT change as the string `"76119879871802694"`; the preview prints `"change": 76119879871802690`, an unquoted number already rounded by the CLI.
+- **Expected:** 18-decimal token amounts as strings, like every Binance Web3 API response.
+- **Actual:** any amount above 2^53 (about 0.009 of an 18-decimal token) is rounded before it reaches the client, so no JSON parser can recover it. The error is tiny, but a client comparing the preview with a minimum in base units can mismatch. Our executor checks amounts against `/simulate` and uses the preview only for its pass/fail and risk flags.
+- **Suggested fix:** return amounts as decimal strings in the `--json` output.

@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-26-36-120Z-exec-NVDAB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:26:36.120Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "NVDAB",
+  "venue": {
+    "ticker": "NVDA",
+    "platform": "bstocks",
+    "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"
+  },
+  "usd": 1.5,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is -0.20% off the stock ($229.59 per share vs the stock at $230.05)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 230.048696,
+    "displayedGapPct": -0.00029861503757442964,
+    "executableGapPct": -0.0020033011716877984,
+    "fillPerShare": 229.58783917775796,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.006528366561053815,
+    "fillPerShare": 229.58783917775796,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "USDC",
+      "BSC_ETH",
+      "WBNB",
+      "NVDAB"
+    ],
+    "vendorPriceImpact": 0.0028504485,
+    "networkFeeUsd": 0.01751952,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "2491934267991288669",
+    "bnb": "1191598819833454",
+    "allowance": "1500000000000000000"
+  },
+  "approval": {
+    "needed": false,
+    "amount": "1500000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "1500000000000000000"
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "6495724728248545",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "54044252",
+    "worstCaseGapPct": 0.0030117576163943838
+  },
+  "simulation": {
+    "source": "binance-transaction-api",
+    "status": "SUCCESS",
+    "failReason": null,
+    "tokenDelta": "6521202539844627"
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:26:36.121Z",
+      "step": "gate",
+      "detail": "NVDAB at $1.5"
+    },
+    {
+      "at": "2026-09-29T15:26:37.662Z",
+      "step": "gate passed",
+      "detail": "GO, fill -0.18% vs the stock"
+    },
+    {
+      "at": "2026-09-29T15:26:38.211Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T15:26:38.643Z",
+      "step": "swap built",
+      "detail": "min receive 0.00649572 NVDAB"
+    },
+    {
+      "at": "2026-09-29T15:26:38.976Z",
+      "step": "simulated",
+      "detail": "binance-transaction-api"
+    },
+    {
+      "at": "2026-09-29T15:26:38.976Z",
+      "step": "dry run: not broadcast",
+      "detail": "pass --live to sign with the Agentic Wallet"
+    }
+  ]
+}

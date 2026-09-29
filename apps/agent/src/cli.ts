@@ -429,16 +429,16 @@ const OUTCOME_BADGE: Record<Outcome, string> = {
 };
 
 async function promptConfirm(summary: string, yes: boolean): Promise<boolean> {
-  console.log(`\n${pc.bold(summary)}`);
+  console.error(`\n${pc.bold(summary)}`);
   if (yes) {
-    console.log(pc.dim("--yes given: confirmed."));
+    console.error(pc.dim("--yes given: confirmed."));
     return true;
   }
   if (!process.stdin.isTTY) {
-    console.log(pc.yellow("No terminal to confirm in; re-run with --yes to broadcast."));
+    console.error(pc.yellow("No terminal to confirm in; re-run with --yes to broadcast."));
     return false;
   }
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const rl = createInterface({ input: process.stdin, output: process.stderr });
   const answer = await rl.question(`${pc.yellow("Type yes to sign and broadcast with the Agentic Wallet:")} `);
   rl.close();
   return answer.trim().toLowerCase() === "yes";

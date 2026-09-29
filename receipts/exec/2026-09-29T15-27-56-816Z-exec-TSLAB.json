@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-27-56-816Z-exec-TSLAB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:27:56.816Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "TSLAB",
+  "venue": {
+    "ticker": "TSLA",
+    "platform": "bstocks",
+    "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f"
+  },
+  "usd": 0.95,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is -0.25% off the stock ($352.98 per share vs the stock at $353.85)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 353.845,
+    "displayedGapPct": -0.0010597860645197754,
+    "executableGapPct": -0.002457780885874409,
+    "fillPerShare": 352.9753265224378,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.002691406250288179,
+    "fillPerShare": 352.9753265224378,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "ASTER",
+      "USDC",
+      "WBNB",
+      "TSLAB"
+    ],
+    "vendorPriceImpact": 0.0142306895,
+    "networkFeeUsd": 0.02232984,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "991934267991288669",
+    "bnb": "1157791902428354",
+    "allowance": "0"
+  },
+  "approval": {
+    "needed": true,
+    "amount": "950000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "0",
+    "to": "0x55d398326f99059fF775485246999027B3197955",
+    "value": "0"
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "2677949219036738",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "58060914",
+    "worstCaseGapPct": 0.002554994084548401
+  },
+  "simulation": {
+    "source": "eth_call-state-override",
+    "status": "SUCCESS",
+    "failReason": null,
+    "tokenDelta": null,
+    "apiStatus": "FAILED",
+    "apiFailReason": "execution reverted: BEP20: transfer amount exceeds allowance",
+    "overrides": {
+      "token": "0x55d398326f99059fF775485246999027B3197955",
+      "balance": "950000000000000000",
+      "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+      "allowance": "950000000000000000"
+    }
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:27:56.817Z",
+      "step": "gate",
+      "detail": "TSLAB at $0.95"
+    },
+    {
+      "at": "2026-09-29T15:27:58.032Z",
+      "step": "gate passed",
+      "detail": "GO, fill -0.25% vs the stock"
+    },
+    {
+      "at": "2026-09-29T15:27:58.832Z",
+      "step": "approval checked",
+      "detail": "exact 0.95 USDT to 0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+    },
+    {
+      "at": "2026-09-29T15:27:58.832Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T15:27:59.318Z",
+      "step": "swap built",
+      "detail": "min receive 0.00267795 TSLAB"
+    },
+    {
+      "at": "2026-09-29T15:27:59.923Z",
+      "step": "simulated",
+      "detail": "eth_call-state-override"
+    },
+    {
+      "at": "2026-09-29T15:27:59.923Z",
+      "step": "dry run: not broadcast",
+      "detail": "pass --live to sign with the Agentic Wallet"
+    }
+  ]
+}

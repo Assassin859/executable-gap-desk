@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-28-03-954Z-exec-AAPLB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:28:03.954Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "AAPLB",
+  "venue": {
+    "ticker": "AAPL",
+    "platform": "bstocks",
+    "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a"
+  },
+  "usd": 0.95,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is -0.00% off the stock ($331.81 per share vs the stock at $331.82)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 331.822857,
+    "displayedGapPct": 0.00023248247784201978,
+    "executableGapPct": -0.000035092374754833694,
+    "fillPerShare": 331.81121254794994,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.002861345848429583,
+    "fillPerShare": 331.81121254794994,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "BSC_ETH",
+      "USD1",
+      "WBNB",
+      "AAPLB"
+    ],
+    "vendorPriceImpact": 0.0053574716,
+    "networkFeeUsd": 0.01759351,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "991934267991288669",
+    "bnb": "1157791902428354",
+    "allowance": "0"
+  },
+  "approval": {
+    "needed": true,
+    "amount": "950000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "0",
+    "to": "0x55d398326f99059fF775485246999027B3197955",
+    "value": "0"
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "2847039119187435",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "52299346",
+    "worstCaseGapPct": 0.004989856909793922
+  },
+  "simulation": {
+    "source": "eth_call-state-override",
+    "status": "SUCCESS",
+    "failReason": null,
+    "tokenDelta": null,
+    "apiStatus": "FAILED",
+    "apiFailReason": "execution reverted: BEP20: transfer amount exceeds allowance",
+    "overrides": {
+      "token": "0x55d398326f99059fF775485246999027B3197955",
+      "balance": "950000000000000000",
+      "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+      "allowance": "950000000000000000"
+    }
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:28:03.955Z",
+      "step": "gate",
+      "detail": "AAPLB at $0.95"
+    },
+    {
+      "at": "2026-09-29T15:28:04.698Z",
+      "step": "gate passed",
+      "detail": "GO, fill -0.15% vs the stock"
+    },
+    {
+      "at": "2026-09-29T15:28:05.567Z",
+      "step": "approval checked",
+      "detail": "exact 0.95 USDT to 0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+    },
+    {
+      "at": "2026-09-29T15:28:05.567Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T15:28:06.024Z",
+      "step": "swap built",
+      "detail": "min receive 0.00284704 AAPLB"
+    },
+    {
+      "at": "2026-09-29T15:28:06.483Z",
+      "step": "simulated",
+      "detail": "eth_call-state-override"
+    },
+    {
+      "at": "2026-09-29T15:28:06.483Z",
+      "step": "dry run: not broadcast",
+      "detail": "pass --live to sign with the Agentic Wallet"
+    }
+  ]
+}

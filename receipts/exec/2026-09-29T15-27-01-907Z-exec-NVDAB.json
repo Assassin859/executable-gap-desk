@@ -1,0 +1,249 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-27-01-907Z-exec-NVDAB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:27:01.907Z",
+  "mode": "live",
+  "outcome": "FILLED",
+  "refusal": null,
+  "symbol": "NVDAB",
+  "venue": {
+    "ticker": "NVDA",
+    "platform": "bstocks",
+    "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"
+  },
+  "usd": 1.5,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is -0.09% off the stock ($229.83 per share vs the stock at $230.05)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 230.048696,
+    "displayedGapPct": -0.000776774670350673,
+    "executableGapPct": -0.0009448259460136476,
+    "fillPerShare": 229.8313400231726,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.006521449911755104,
+    "fillPerShare": 229.8313400231726,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "QQQB",
+      "NVDAB"
+    ],
+    "vendorPriceImpact": 0.0013519965,
+    "networkFeeUsd": 0.01765773,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "2491934267991288669",
+    "bnb": "1191598819833454",
+    "allowance": "1500000000000000000"
+  },
+  "approval": {
+    "needed": false,
+    "amount": "1500000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "1500000000000000000"
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "6488842662196328",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "52946923",
+    "worstCaseGapPct": 0.004075551813051748,
+    "preview": {
+      "requestId": "07465f7863d44ed6b6bff9235c673a29",
+      "requireConfirmation": false,
+      "simulationOk": true,
+      "risks": []
+    },
+    "broadcastStatus": "BROADCASTED",
+    "txHash": "0x5072d691dd8555ef9a1527aaa4eb10946d148b32d37a4ab9b4bb0b76137f0a82",
+    "bscscan": "https://bscscan.com/tx/0x5072d691dd8555ef9a1527aaa4eb10946d148b32d37a4ab9b4bb0b76137f0a82",
+    "blockNumber": "124740473",
+    "gasUsed": "487900",
+    "gasCostBnb": 0.0000338069174051
+  },
+  "simulation": {
+    "source": "binance-transaction-api",
+    "status": "SUCCESS",
+    "failReason": null,
+    "tokenDelta": "6522595904896171"
+  },
+  "fill": {
+    "tokensOut": 0.00652272418519444,
+    "usdSpent": 1.5,
+    "fillPerShare": 229.78644038250044,
+    "quotedFillPerShare": 229.8313400231726,
+    "realizedVsQuotedPct": -0.00019535908665735402,
+    "realizedGapPct": -0.0011400004523371098
+  },
+  "txDetail": [
+    {
+      "chainIndex": "56",
+      "height": "124740473",
+      "txTime": "1790695627150",
+      "txhash": "0x5072d691dd8555ef9a1527aaa4eb10946d148b32d37a4ab9b4bb0b76137f0a82",
+      "txStatus": "success",
+      "gasLimit": "746269",
+      "gasUsed": "487900",
+      "gasPrice": "69290669",
+      "txFee": "0.0000338069174051",
+      "nonce": "2",
+      "amount": "0",
+      "symbol": "BNB",
+      "methodId": "0xad43f73d",
+      "l1OriginHash": null,
+      "fromDetails": [
+        {
+          "address": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+          "vinIndex": null,
+          "preVoutIndex": null,
+          "txHash": "0x5072d691dd8555ef9a1527aaa4eb10946d148b32d37a4ab9b4bb0b76137f0a82",
+          "isContract": null,
+          "amount": ""
+        }
+      ],
+      "toDetails": [
+        {
+          "address": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "voutIndex": null,
+          "isContract": null,
+          "amount": ""
+        }
+      ],
+      "internalTransactionDetails": null,
+      "tokenTransferDetails": [
+        {
+          "from": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+          "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+          "symbol": "USDT",
+          "amount": "1.5"
+        },
+        {
+          "from": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "to": "0xd6F33A3C5dB5b48Dcc4508a19981bf8c2998f459",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+          "symbol": "USDT",
+          "amount": "1.5"
+        },
+        {
+          "from": "0xED1029BbAEA4A2903993B43f24F52A36eCa717b8",
+          "to": "0xe4DF7c2DFBDa34D75b5BcBD484c66A6E67F815e9",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x205812CdBed920aFf76C6580abD681a46D11efc7",
+          "symbol": "QQQB",
+          "amount": "0.002035790652598887"
+        },
+        {
+          "from": "0xd6F33A3C5dB5b48Dcc4508a19981bf8c2998f459",
+          "to": "0xED1029BbAEA4A2903993B43f24F52A36eCa717b8",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+          "symbol": "USDT",
+          "amount": "1.5"
+        },
+        {
+          "from": "0xe4DF7c2DFBDa34D75b5BcBD484c66A6E67F815e9",
+          "to": "0x28e2Ea090877bF75740558f6BFB36A5ffeE9e9dF",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x205812CdBed920aFf76C6580abD681a46D11efc7",
+          "symbol": "QQQB",
+          "amount": "0.002035790652598887"
+        },
+        {
+          "from": "0x28e2Ea090877bF75740558f6BFB36A5ffeE9e9dF",
+          "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436",
+          "symbol": "NVDAB",
+          "amount": "0.00652272418519444"
+        },
+        {
+          "from": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "to": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436",
+          "symbol": "NVDAB",
+          "amount": "0.00652272418519444"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "at": "2026-09-29T15:27:01.908Z",
+      "step": "gate",
+      "detail": "NVDAB at $1.5"
+    },
+    {
+      "at": "2026-09-29T15:27:03.294Z",
+      "step": "gate passed",
+      "detail": "GO, fill -0.11% vs the stock"
+    },
+    {
+      "at": "2026-09-29T15:27:03.904Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T15:27:04.320Z",
+      "step": "swap built",
+      "detail": "min receive 0.00648884 NVDAB"
+    },
+    {
+      "at": "2026-09-29T15:27:04.698Z",
+      "step": "simulated",
+      "detail": "binance-transaction-api"
+    },
+    {
+      "at": "2026-09-29T15:27:04.875Z",
+      "step": "swap: wallet preview"
+    },
+    {
+      "at": "2026-09-29T15:27:05.756Z",
+      "step": "swap: execute"
+    },
+    {
+      "at": "2026-09-29T15:27:06.655Z",
+      "step": "swap: broadcast",
+      "detail": "0x5072d691dd8555ef9a1527aaa4eb10946d148b32d37a4ab9b4bb0b76137f0a82"
+    },
+    {
+      "at": "2026-09-29T15:27:08.759Z",
+      "step": "swap: confirmed",
+      "detail": "block 124740473"
+    },
+    {
+      "at": "2026-09-29T15:27:08.764Z",
+      "step": "filled",
+      "detail": "0.00652272 NVDAB for 1.5000 USDT"
+    }
+  ]
+}

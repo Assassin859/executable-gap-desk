@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-28-10-642Z-exec-GOOGLB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:28:10.642Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "GOOGLB",
+  "venue": {
+    "ticker": "GOOGL",
+    "platform": "bstocks",
+    "address": "0x3f53de71c126bdabae20f9cd64848d317f6c3238"
+  },
+  "usd": 0.95,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is -0.14% off the stock ($338.38 per share vs the stock at $338.85)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 338.845,
+    "displayedGapPct": 0.0005754843660080366,
+    "executableGapPct": -0.001358612916521272,
+    "fillPerShare": 338.3846408063014,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.002806114540890058,
+    "fillPerShare": 338.3846408063014,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "ASTER",
+      "USDC",
+      "WBNB",
+      "GOOGLB"
+    ],
+    "vendorPriceImpact": 0.0141813619,
+    "networkFeeUsd": 0.01893732,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "991934267991288669",
+    "bnb": "1157791902428354",
+    "allowance": "0"
+  },
+  "approval": {
+    "needed": true,
+    "amount": "950000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "0",
+    "to": "0x55d398326f99059fF775485246999027B3197955",
+    "value": "0"
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "2792083968185607",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "55841511",
+    "worstCaseGapPct": 0.0036596855110340165
+  },
+  "simulation": {
+    "source": "eth_call-state-override",
+    "status": "SUCCESS",
+    "failReason": null,
+    "tokenDelta": null,
+    "apiStatus": "FAILED",
+    "apiFailReason": "execution reverted: BEP20: transfer amount exceeds allowance",
+    "overrides": {
+      "token": "0x55d398326f99059fF775485246999027B3197955",
+      "balance": "950000000000000000",
+      "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+      "allowance": "950000000000000000"
+    }
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:28:10.643Z",
+      "step": "gate",
+      "detail": "GOOGLB at $0.95"
+    },
+    {
+      "at": "2026-09-29T15:28:12.004Z",
+      "step": "gate passed",
+      "detail": "GO, fill +0.02% vs the stock"
+    },
+    {
+      "at": "2026-09-29T15:28:12.781Z",
+      "step": "approval checked",
+      "detail": "exact 0.95 USDT to 0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+    },
+    {
+      "at": "2026-09-29T15:28:12.781Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T15:28:13.230Z",
+      "step": "swap built",
+      "detail": "min receive 0.00279208 GOOGLB"
+    },
+    {
+      "at": "2026-09-29T15:28:13.793Z",
+      "step": "simulated",
+      "detail": "eth_call-state-override"
+    },
+    {
+      "at": "2026-09-29T15:28:13.793Z",
+      "step": "dry run: not broadcast",
+      "detail": "pass --live to sign with the Agentic Wallet"
+    }
+  ]
+}

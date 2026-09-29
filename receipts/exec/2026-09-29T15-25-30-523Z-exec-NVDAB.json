@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-25-30-523Z-exec-NVDAB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:25:30.523Z",
+  "mode": "live",
+  "outcome": "REFUSED",
+  "refusal": {
+    "code": "SIMULATION_FAILED",
+    "message": "Simulation FAILED: execution reverted: Min return not reached."
+  },
+  "symbol": "NVDAB",
+  "venue": {
+    "ticker": "NVDA",
+    "platform": "bstocks",
+    "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"
+  },
+  "usd": 1.5,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is -0.36% off the stock ($229.29 per share vs the stock at $230.13)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 230.131429,
+    "displayedGapPct": -0.0009621849608380615,
+    "executableGapPct": -0.0036397524514686463,
+    "fillPerShare": 229.29380756713726,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.006536738117857009,
+    "fillPerShare": 229.29380756713726,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "BTCB",
+      "USDC",
+      "WBNB",
+      "NVDAB"
+    ],
+    "vendorPriceImpact": 0.0062315415,
+    "networkFeeUsd": 0.01789314,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "2491934267991288669",
+    "bnb": "1191598819833454",
+    "allowance": "1500000000000000000"
+  },
+  "approval": {
+    "needed": false,
+    "amount": "1500000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "1500000000000000000"
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "6504054427267723",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "52983536",
+    "worstCaseGapPct": 0.0013670829633483095
+  },
+  "simulation": {
+    "source": "binance-transaction-api",
+    "status": "FAILED",
+    "failReason": "execution reverted: Min return not reached",
+    "tokenDelta": "0"
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:25:30.525Z",
+      "step": "gate",
+      "detail": "NVDAB at $1.5"
+    },
+    {
+      "at": "2026-09-29T15:25:31.303Z",
+      "step": "gate passed",
+      "detail": "GO, fill -0.38% vs the stock"
+    },
+    {
+      "at": "2026-09-29T15:25:31.933Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T15:25:32.353Z",
+      "step": "swap built",
+      "detail": "min receive 0.00650405 NVDAB"
+    },
+    {
+      "at": "2026-09-29T15:25:32.699Z",
+      "step": "refused",
+      "detail": "SIMULATION_FAILED: Simulation FAILED: execution reverted: Min return not reached."
+    }
+  ]
+}

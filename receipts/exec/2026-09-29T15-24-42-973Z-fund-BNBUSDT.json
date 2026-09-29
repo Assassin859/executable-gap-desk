@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-24-42-973Z-fund-BNBUSDT",
+  "kind": "funding",
+  "createdAt": "2026-09-29T15:24:42.973Z",
+  "mode": "live",
+  "outcome": "REFUSED",
+  "refusal": {
+    "code": "SIMULATION_FAILED",
+    "message": "Simulation FAILED: execution reverted: Min return not reached."
+  },
+  "symbol": "BNB-USDT",
+  "venue": null,
+  "usd": 2.5,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": null,
+  "quote": {
+    "tokensOut": 2.5032779070501334,
+    "fillPerShare": 0,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "BNB",
+      "USDT"
+    ],
+    "vendorPriceImpact": 0.00590182,
+    "networkFeeUsd": 0.0198062,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "0",
+    "bnb": "4519200000000000",
+    "allowance": "0"
+  },
+  "approval": null,
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "3300000000000000",
+    "minReceiveAmount": "2490761517514882640",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "53020269",
+    "worstCaseGapPct": null
+  },
+  "simulation": {
+    "source": "binance-transaction-api",
+    "status": "FAILED",
+    "failReason": "execution reverted: Min return not reached",
+    "tokenDelta": "0"
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:24:44.196Z",
+      "step": "quote",
+      "detail": "0.0033 BNB to USDT"
+    },
+    {
+      "at": "2026-09-29T15:24:45.448Z",
+      "step": "refused",
+      "detail": "SIMULATION_FAILED: Simulation FAILED: execution reverted: Min return not reached."
+    }
+  ]
+}

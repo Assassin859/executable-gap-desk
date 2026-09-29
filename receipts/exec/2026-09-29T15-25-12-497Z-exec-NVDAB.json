@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-25-12-497Z-exec-NVDAB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:25:12.497Z",
+  "mode": "live",
+  "outcome": "REFUSED",
+  "refusal": {
+    "code": "SIMULATION_FAILED",
+    "message": "Simulation FAILED: execution reverted: Min return not reached."
+  },
+  "symbol": "NVDAB",
+  "venue": {
+    "ticker": "NVDA",
+    "platform": "bstocks",
+    "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"
+  },
+  "usd": 1.5,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is -0.50% off the stock ($229.25 per share vs the stock at $230.42)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 230.416667,
+    "displayedGapPct": -0.002285715729062147,
+    "executableGapPct": -0.005046096492332845,
+    "fillPerShare": 229.25396226487626,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.006537874230417655,
+    "fillPerShare": 229.25396226487626,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "BTCB",
+      "USDC",
+      "WBNB",
+      "NVDAB"
+    ],
+    "vendorPriceImpact": 0.0062318294,
+    "networkFeeUsd": 0.01881827,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "2491934267991288669",
+    "bnb": "1194793502129560",
+    "allowance": "0"
+  },
+  "approval": {
+    "needed": true,
+    "amount": "1500000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "0",
+    "to": "0x55d398326f99059fF775485246999027B3197955",
+    "value": "0",
+    "preview": {
+      "requestId": "94161d6047574809b479dd7a239d9b18",
+      "requireConfirmation": false,
+      "simulationOk": true,
+      "risks": []
+    },
+    "broadcastStatus": "BROADCASTED",
+    "txHash": "0x4666b56de77cdc180beb92c5ae4d01d2dca1809063ff3eef6f3dc48c32e8156e",
+    "bscscan": "https://bscscan.com/tx/0x4666b56de77cdc180beb92c5ae4d01d2dca1809063ff3eef6f3dc48c32e8156e",
+    "blockNumber": "124740227",
+    "gasUsed": "46194",
+    "gasCostBnb": 0.000003194682296106
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "6505184859265566",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "53610552",
+    "worstCaseGapPct": -0.00004632813299754179
+  },
+  "simulation": {
+    "source": "binance-transaction-api",
+    "status": "FAILED",
+    "failReason": "execution reverted: Min return not reached",
+    "tokenDelta": "0"
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:25:12.500Z",
+      "step": "gate",
+      "detail": "NVDAB at $1.5"
+    },
+    {
+      "at": "2026-09-29T15:25:13.573Z",
+      "step": "gate passed",
+      "detail": "GO, fill -0.47% vs the stock"
+    },
+    {
+      "at": "2026-09-29T15:25:14.344Z",
+      "step": "approval checked",
+      "detail": "exact 1.5 USDT to 0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+    },
+    {
+      "at": "2026-09-29T15:25:14.344Z",
+      "step": "approval: wallet preview"
+    },
+    {
+      "at": "2026-09-29T15:25:15.081Z",
+      "step": "approval: execute"
+    },
+    {
+      "at": "2026-09-29T15:25:15.891Z",
+      "step": "approval: broadcast",
+      "detail": "0x4666b56de77cdc180beb92c5ae4d01d2dca1809063ff3eef6f3dc48c32e8156e"
+    },
+    {
+      "at": "2026-09-29T15:25:18.178Z",
+      "step": "approval: confirmed",
+      "detail": "block 124740227"
+    },
+    {
+      "at": "2026-09-29T15:25:18.332Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T15:25:18.743Z",
+      "step": "swap built",
+      "detail": "min receive 0.00650518 NVDAB"
+    },
+    {
+      "at": "2026-09-29T15:25:19.206Z",
+      "step": "refused",
+      "detail": "SIMULATION_FAILED: Simulation FAILED: execution reverted: Min return not reached."
+    }
+  ]
+}

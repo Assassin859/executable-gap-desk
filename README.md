@@ -14,8 +14,8 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 |------|------|-------|
 | 1 | Data truth: registry, session, per-share prices, displayed-gap matrix, CLI | done |
 | 2 | Executable quotes and the GO / CAUTION / BLOCK gate | done |
-| 3 | Guarded mainnet fills via `baw` with receipts | next |
-| 4 | Web desk | planned |
+| 3 | Guarded mainnet fills via `baw` with receipts | done |
+| 4 | Web desk | next |
 | 5 | Agentic Wallet and BNB Agent Studio integrations | planned |
 | 6 | Ship: polish, demo, DX report | planned |
 
@@ -101,6 +101,28 @@ The gate is a pure function of the venue data, the quote, the session and [`pack
 
 The best venue is the cheapest GO, falling back to the cheapest CAUTION. A BLOCK venue is never recommended.
 
+### Guarded execution
+
+`gap exec` buys a venue with USDT, but only after the gate says GO and every transaction has been checked and simulated. It signs through the [Binance Agentic Wallet](https://web3.binance.com) CLI (`baw contract-call`), so no private key ever touches this repo. It needs `baw` installed and logged in, and `GAP_WALLET_ADDRESS` in `.env.local`.
+
+```bash
+pnpm gap exec NVDAB --usd 1.5            # dry run (the default): gate, build, simulate, write a receipt
+pnpm gap exec NVDAB --usd 1.5 --live     # same, then asks you to type "yes" before each signature
+pnpm gap fund --bnb 0.0033               # one-off BNB -> USDT conversion through the same checks
+pnpm gap receipts                        # the ledger of every run, plus today's live spend
+```
+
+Every run writes a JSON receipt to [`receipts/exec/`](receipts/exec/), including refusals. A refusal happens before anything is signed and exits non-zero. The rails, in order:
+
+1. **Kill switch and dry run:** `GAP_EXEC_DISABLED=1` refuses everything; nothing is broadcast without `--live`; `DRY_RUN=1` overrides `--live`; `--yes` only works together with `--live`.
+2. **Size:** at most $25 per trade (policy `maxTradeUsd`) and $5 per UTC day across live fills (`maxDailySpendUsd`, summed from the receipts).
+3. **Gate:** the venue must be GO on a quote at most 60 s old. CAUTION and BLOCK are refused, so off-hours trading is refused by design. RFQ routes are refused (`MODE_RFQ_UNSUPPORTED`) until that signing path is tested.
+4. **Approval:** exact amount only, never unlimited. The spender in the approve calldata must be the quote's `approveTarget`. The allowance is re-read on-chain after the approval confirms.
+5. **Transaction checks:** re-quote and re-gate, then build with 0.5% slippage (`slippagePct`). `tx.from` must be the wallet, `tx.to` the approved router, `tx.value` exactly what is being sold. At the guaranteed minimum output the fill must still be inside the CAUTION band vs the stock.
+6. **Simulation:** Binance `/pre-transaction/simulate` must succeed and deliver at least the minimum. A dry run from an unfunded wallet falls back to a BSC `eth_call` with the USDT balance and allowance overridden, and the receipt says which one ran.
+7. **Wallet preview:** `baw contract-call preview` must pass its own simulation with no risk flags, and then you confirm.
+8. **After broadcast:** wait for the receipt (a revert is recorded as `TX_REVERTED`), then read the real fill from the `Transfer` logs and compare it with the quote.
+
 ## How it works
 
 ```mermaid
@@ -116,7 +138,12 @@ flowchart LR
   matrix --> gate[Gate]
   quotes --> gate
   gate --> cli
-  gate -.->|Part 3| baw[Agentic Wallet fills]
+  gate --> exec[Executor]
+  swapApi[Keyed /approve, /swap, /simulate] --> exec
+  exec --> baw[Agentic Wallet baw]
+  baw --> bsc[BSC mainnet]
+  bsc --> exec
+  exec --> receipts[receipts/exec]
 ```
 
 - **Registry** (`packages/core/src/registry.ts`): BSC venues from the public RWA list, platform by `type` (1 Ondo, 2 xStocks, 3 bStocks), grouped by ticker.
@@ -127,27 +154,51 @@ flowchart LR
 - **Quotes** (`quotes.ts`): USDT to token quotes at $25, $100 and $500. `fillPerShare = usd / (tokensOut × multiplier)`, `executableGap = fillPerShare / stock − 1`. Error codes map to plain-English reasons. Requests are spaced at 4.5 per second to stay under the 5 RPS endpoint limit.
 - **Gate** (`gate.ts`): deterministic GO / CAUTION / BLOCK per venue with numbered reasons, plus the best venue per ticker.
 - **Snapshot** (`snapshot.ts`): the rate-limited sweep behind `gap snapshot`, cached for 60 s.
+- **Trade API** (`trade.ts`): keyed `/approve-transaction`, `/swap`, `/pre-transaction/simulate` and transaction detail, with zod schemas taken from recorded responses.
+- **Chain** (`chain.ts`): viem reads on BSC (balances, allowance, receipts, `Transfer` logs), approve-calldata decoding, and the state-override `eth_call` used for unfunded dry runs.
+- **Wallet** (`baw.ts`): runs `baw contract-call preview/execute` without a shell and parses its JSON (including after its Windows exit crash, DX #13).
+- **Executor** (`execute.ts`): the rails above, `PENDING_CONFIRMATION` polling, and receipts.
 
 ```text
-packages/core/     data layer (config, http, schemas, registry, session, prices, matrix, signer, quotes, gate, snapshot) + tests
+packages/core/     data layer (config, http, schemas, registry, session, prices, matrix, signer, quotes, gate, snapshot)
+                   + execution (trade, chain, baw, execute) + tests
 packages/core/policy/  gate policy (JSON, zod-validated)
 apps/agent/        gap CLI
 scripts/           fixture recorder
+receipts/exec/     one JSON receipt per gap exec / gap fund run (fills and refusals)
 docs/DX_LOG.md     developer-experience findings
 docs/vendor/       snapshot of the Binance Web3 llms-full.txt docs
 ```
 
 ## Proof ledger
 
-_Mainnet transactions, quotes and gate decisions will be listed here from Part 3._
+Real BSC mainnet runs of `gap exec` / `gap fund` on 2026-09-29, from the Agentic Wallet [`0x623d…1C65`](https://bscscan.com/address/0x623dF829DF5cf33506a0fbb152dbc885d5b61C65). Every row has a JSON receipt in [`receipts/exec/`](receipts/exec/).
 
-| Time (UTC) | Venue | Side | Size | Gate | Quote vs fill | Tx |
-|------------|-------|------|------|------|---------------|----|
-| | | | | | | |
+**Fills**
+
+| Run (UTC) | What | Size | Gate | Quoted | Filled | Fill vs quote | Fill vs stock | Tx |
+|------------|------|------|------|--------|--------|---------------|---------------|----|
+| 15:25:00 | Fund: BNB to USDT (Lifi) | 0.0033 BNB ($2.49) | n/a (buys no stock) | 2.5044 USDT | 2.4919 USDT | -0.50% ([DX #25](docs/DX_LOG.md#25-a-lifi-fill-landed-050-below-its-quote-and-simulation)) | n/a | [0xe09f…2f34](https://bscscan.com/tx/0xe09f6292637ddb7475be64399f5fcc3db2604f3296382d336e804648bd972f34) |
+| 15:25:13 | Approve exactly 1.5 USDT to the router | 1.5 USDT | GO | | | | | [0x4666…156e](https://bscscan.com/tx/0x4666b56de77cdc180beb92c5ae4d01d2dca1809063ff3eef6f3dc48c32e8156e) |
+| 15:27:02 | **Buy NVDAB** (USDT to QQQB to NVDAB) | $1.50 | GO | $229.83/share | **$229.79/share** (0.00652272 NVDAB) | -0.02% (better) | -0.11% | [0x5072…0a82](https://bscscan.com/tx/0x5072d691dd8555ef9a1527aaa4eb10946d148b32d37a4ab9b4bb0b76137f0a82) |
+| 15:31:55 | Approve exactly 0.95 USDT to the router | 0.95 USDT | GO | | | | | [0x902c…5586](https://bscscan.com/tx/0x902c99b3efe83dcc9daec2058768c8dda8f3cb17168fd929c80a135d9f595586) |
+| 15:31:55 | **Buy AAPLB** (USDT to AAPLB) | $0.95 | GO | $332.14/share | **$332.21/share** (0.00285788 AAPLB) | +0.02% | +0.11% | [0x6327…d41f](https://bscscan.com/tx/0x63272d01cda4a3fa03f48e64a0bd8f9fa2716c1c69aadf122e95db37692cd41f) |
+
+Both stock fills landed within 0.02% of the quote and 0.11% of the stock. Network fees were about 0.00003 BNB (under $0.03) per swap. Both exact approvals were fully used: the router's USDT allowance is back to 0.
+
+**Refusals (nothing signed)**
+
+| Run (UTC) | Venue | Size | Mode | Refused because |
+|------------|-------|------|------|-----------------|
+| 15:20:08 | MSTRx | $1 | dry run | Gate BLOCK: displays 9.7% below the stock, but the quote returns no liquidity (`40374`) |
+| 15:20:12 | AAOIB | $1 | dry run | Gate BLOCK: displays -0.49% vs the stock but would fill at **+389%** ($500.97 per share for a $102.43 stock) |
+| 15:24:43 | BNB to USDT | 0.0033 BNB | live | Binance simulation reverted: "Min return not reached" on a fresh LiquidMesh quote ([DX #24](docs/DX_LOG.md#24-fresh-liquidmesh-quotes-fail-their-own-05-minimum-in-simulation)) |
+| 15:25:13 | NVDAB | $1.50 | live | Same: a four-hop LiquidMesh route (USDT, BTCB, USDC, WBNB, NVDAB) failed its own 0.5% minimum. The exact approval had gone through; the swap never did |
+| 15:25:31 | NVDAB | $1.50 | live | Same route, same simulated revert |
 
 ## Developer experience
 
-We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (21 entries so far).
+We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (28 entries so far; #22–#28 come from the live fills).
 
 _The full DX report will be summarized here in Part 6._
 

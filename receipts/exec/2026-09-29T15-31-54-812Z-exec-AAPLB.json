@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-31-54-812Z-exec-AAPLB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:31:54.812Z",
+  "mode": "live",
+  "outcome": "FILLED",
+  "refusal": null,
+  "symbol": "AAPLB",
+  "venue": {
+    "ticker": "AAPL",
+    "platform": "bstocks",
+    "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a"
+  },
+  "usd": 0.95,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is +0.08% off the stock ($332.14 per share vs the stock at $331.86)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 331.858889,
+    "displayedGapPct": -0.000026785481102342086,
+    "executableGapPct": 0.000848177780415624,
+    "fillPerShare": 332.1403643358832,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.002858510248776439,
+    "fillPerShare": 332.1403643358832,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "AAPLB"
+    ],
+    "vendorPriceImpact": 0.0008303145,
+    "networkFeeUsd": 0.01823958,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "991934267991288669",
+    "bnb": "1157791902428354",
+    "allowance": "0"
+  },
+  "approval": {
+    "needed": true,
+    "amount": "950000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "0",
+    "to": "0x55d398326f99059fF775485246999027B3197955",
+    "value": "0",
+    "preview": {
+      "requestId": "35f8ff79d1344a01b15d8d74380c6f6e",
+      "requireConfirmation": false,
+      "simulationOk": true,
+      "risks": []
+    },
+    "broadcastStatus": "BROADCASTED",
+    "txHash": "0x902c99b3efe83dcc9daec2058768c8dda8f3cb17168fd929c80a135d9f595586",
+    "bscscan": "https://bscscan.com/tx/0x902c99b3efe83dcc9daec2058768c8dda8f3cb17168fd929c80a135d9f595586",
+    "blockNumber": "124741122",
+    "gasUsed": "46194",
+    "gasCostBnb": 0.000003705585580212
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "2844217697532556",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "52959670",
+    "worstCaseGapPct": 0.00587756560845798,
+    "preview": {
+      "requestId": "c68700be44e24d05b3550275d07bbae1",
+      "requireConfirmation": false,
+      "simulationOk": true,
+      "risks": []
+    },
+    "broadcastStatus": "BROADCASTED",
+    "txHash": "0x63272d01cda4a3fa03f48e64a0bd8f9fa2716c1c69aadf122e95db37692cd41f",
+    "bscscan": "https://bscscan.com/tx/0x63272d01cda4a3fa03f48e64a0bd8f9fa2716c1c69aadf122e95db37692cd41f",
+    "blockNumber": "124741133",
+    "gasUsed": "358376",
+    "gasCostBnb": 0.000039961031967632
+  },
+  "simulation": {
+    "source": "binance-transaction-api",
+    "status": "SUCCESS",
+    "failReason": null,
+    "tokenDelta": "2857969805012951"
+  },
+  "fill": {
+    "tokensOut": 0.002857883746551181,
+    "usdSpent": 0.95,
+    "fillPerShare": 332.21317579212433,
+    "quotedFillPerShare": 332.1403643358832,
+    "realizedVsQuotedPct": 0.00021921893289511551,
+    "realizedGapPct": 0.0010675826499387682
+  },
+  "txDetail": [
+    {
+      "chainIndex": "56",
+      "height": "124741133",
+      "txTime": "1790695924500",
+      "txhash": "0x63272d01cda4a3fa03f48e64a0bd8f9fa2716c1c69aadf122e95db37692cd41f",
+      "txStatus": "success",
+      "gasLimit": "548900",
+      "gasUsed": "358376",
+      "gasPrice": "111505882",
+      "txFee": "0.000039961031967632",
+      "nonce": "4",
+      "amount": "0",
+      "symbol": "BNB",
+      "methodId": "0xad43f73d",
+      "l1OriginHash": null,
+      "fromDetails": [
+        {
+          "address": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+          "vinIndex": null,
+          "preVoutIndex": null,
+          "txHash": "0x63272d01cda4a3fa03f48e64a0bd8f9fa2716c1c69aadf122e95db37692cd41f",
+          "isContract": null,
+          "amount": ""
+        }
+      ],
+      "toDetails": [
+        {
+          "address": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "voutIndex": null,
+          "isContract": null,
+          "amount": ""
+        }
+      ],
+      "internalTransactionDetails": null,
+      "tokenTransferDetails": [
+        {
+          "from": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+          "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+          "symbol": "USDT",
+          "amount": "0.95"
+        },
+        {
+          "from": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "to": "0xd6F33A3C5dB5b48Dcc4508a19981bf8c2998f459",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+          "symbol": "USDT",
+          "amount": "0.95"
+        },
+        {
+          "from": "0x0605E29b092F82B3De5dAc13cE984Ac80c0c0780",
+          "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x431a3BEE82E2ca41e49895CbECE5bB0F76A89b7A",
+          "symbol": "AAPLB",
+          "amount": "0.002857883746551181"
+        },
+        {
+          "from": "0xd6F33A3C5dB5b48Dcc4508a19981bf8c2998f459",
+          "to": "0x0605E29b092F82B3De5dAc13cE984Ac80c0c0780",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+          "symbol": "USDT",
+          "amount": "0.95"
+        },
+        {
+          "from": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "to": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+          "isFromContract": null,
+          "isToContract": null,
+          "tokenContractAddress": "0x431a3BEE82E2ca41e49895CbECE5bB0F76A89b7A",
+          "symbol": "AAPLB",
+          "amount": "0.002857883746551181"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "at": "2026-09-29T15:31:54.820Z",
+      "step": "gate",
+      "detail": "AAPLB at $0.95"
+    },
+    {
+      "at": "2026-09-29T15:31:56.477Z",
+      "step": "gate passed",
+      "detail": "GO, fill +0.08% vs the stock"
+    },
+    {
+      "at": "2026-09-29T15:31:57.277Z",
+      "step": "approval checked",
+      "detail": "exact 0.95 USDT to 0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+    },
+    {
+      "at": "2026-09-29T15:31:57.277Z",
+      "step": "approval: wallet preview"
+    },
+    {
+      "at": "2026-09-29T15:31:58.098Z",
+      "step": "approval: execute"
+    },
+    {
+      "at": "2026-09-29T15:31:59.007Z",
+      "step": "approval: broadcast",
+      "detail": "0x902c99b3efe83dcc9daec2058768c8dda8f3cb17168fd929c80a135d9f595586"
+    },
+    {
+      "at": "2026-09-29T15:32:01.134Z",
+      "step": "approval: confirmed",
+      "detail": "block 124741122"
+    },
+    {
+      "at": "2026-09-29T15:32:01.269Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T15:32:01.697Z",
+      "step": "swap built",
+      "detail": "min receive 0.00284422 AAPLB"
+    },
+    {
+      "at": "2026-09-29T15:32:01.999Z",
+      "step": "simulated",
+      "detail": "binance-transaction-api"
+    },
+    {
+      "at": "2026-09-29T15:32:02.144Z",
+      "step": "swap: wallet preview"
+    },
+    {
+      "at": "2026-09-29T15:32:03.004Z",
+      "step": "swap: execute"
+    },
+    {
+      "at": "2026-09-29T15:32:03.899Z",
+      "step": "swap: broadcast",
+      "detail": "0x63272d01cda4a3fa03f48e64a0bd8f9fa2716c1c69aadf122e95db37692cd41f"
+    },
+    {
+      "at": "2026-09-29T15:32:05.986Z",
+      "step": "swap: confirmed",
+      "detail": "block 124741133"
+    },
+    {
+      "at": "2026-09-29T15:32:05.991Z",
+      "step": "filled",
+      "detail": "0.00285788 AAPLB for 0.9500 USDT"
+    }
+  ]
+}
