@@ -1,0 +1,25 @@
+{
+  "name": "executable-gap-desk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Displayed gaps lie. Executable ones don't. A desk for BSC tokenized stocks (Ondo, xStocks, bStocks).",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "gap": "tsx apps/agent/src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p packages/core --noEmit && tsc -p apps/agent --noEmit",
+    "record-fixtures": "tsx scripts/record-fixtures.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}
