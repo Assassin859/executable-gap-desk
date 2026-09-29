@@ -96,7 +96,7 @@ export interface TickerVerdict {
 
 const p2 = (n: number) => `${n >= 0 ? "+" : ""}${(n * 100).toFixed(2)}%`;
 const lim = (n: number) => `${(n * 100).toFixed(2)}%`;
-const money = (n: number) => `$${n.toFixed(2)}`;
+const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export function worst(a: Verdict, b: Verdict): Verdict {
   return RANK[a] >= RANK[b] ? a : b;

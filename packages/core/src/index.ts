@@ -8,3 +8,4 @@ export * from "./matrix";
 export * from "./signer";
 export * from "./quotes";
 export * from "./gate";
+export * from "./snapshot";

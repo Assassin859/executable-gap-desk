@@ -9,6 +9,8 @@ import {
   ApiError,
   CHAIN_ID,
   DEFAULT_LADDER,
+  DEFAULT_POLICY,
+  checkTicker,
   MissingCredentialsError,
   QUOTE_REASON_TEXT,
   buildMatrix,
@@ -20,9 +22,11 @@ import {
   resolve,
   signedGet,
   sortByGap,
+  type ExecQuote,
   type MatrixFlag,
   type QuoteFail,
   type SessionName,
+  type Verdict,
 } from "@gapdesk/core";
 import { dateTimes, duration, pct, platformLabel, usd } from "./format";
 
@@ -258,6 +262,82 @@ program
       ]);
     }
     console.log(table.toString());
+  });
+
+function verdictBadge(v: Verdict): string {
+  if (v === "GO") return pc.bgGreen(pc.black(" GO "));
+  if (v === "CAUTION") return pc.bgYellow(pc.black(" CAUTION "));
+  return pc.bgRed(pc.white(pc.bold(" BLOCK ")));
+}
+
+function modeCell(q: ExecQuote | null): string {
+  if (!q) return pc.dim("no quote");
+  if (!q.ok) return pc.red(`${q.reason.toLowerCase().replaceAll("_", " ")} (${q.code ?? "?"})`);
+  return `${q.executionMode ?? "?"} / ${q.vendorName ?? "?"}`;
+}
+
+program
+  .command("check")
+  .description("Truth Card: displayed vs executable per share on every venue, with a GO / CAUTION / BLOCK verdict")
+  .argument("<ticker>", "underlying ticker, e.g. NVDA, MSTR, AAPL")
+  .option("--usd <size>", "trade size in USD", "25")
+  .option("--ladder", `also quote $${DEFAULT_POLICY.impactCautionUsd} and $500 so the size-impact rule has data`)
+  .option("--json", "print JSON")
+  .action(async (tickerArg: string, opts: { usd: string; ladder?: boolean; json?: boolean }) => {
+    const size = Number(opts.usd);
+    if (!Number.isFinite(size) || size <= 0) throw new Error(`Invalid --usd size: ${opts.usd}`);
+    const ticker = resolve(await loadRegistry(), tickerArg)?.ticker ?? tickerArg.toUpperCase();
+    const ladderSizes = opts.ladder ? [DEFAULT_POLICY.impactCautionUsd, 500] : [];
+    const card = await checkTicker(ticker, { usd: size, ladderSizes });
+    if (opts.json) {
+      console.log(JSON.stringify({ ...card, marketSession: card.marketSession ? { ...card.marketSession, raw: undefined } : null }, null, 2));
+      return;
+    }
+
+    const quoteTimes = card.venues.map((v) => v.quote?.ts).filter((t): t is number => t !== undefined);
+    const age = quoteTimes.length ? `${Math.round((Date.now() - Math.min(...quoteTimes)) / 1000)}s old` : "no quotes";
+    const refSource = card.rows[0]?.referenceSource ?? "none";
+    console.log(
+      `${pc.bold(card.ticker)}  stock ${usd(card.reference)} ${pc.dim(`(${refSource})`)}  ` +
+        `${card.session ? sessionBadge(card.session) : pc.dim("session unknown")}  ${pc.dim(`size ${usd(size, 0)}, quotes ${age}`)}`,
+    );
+
+    const impactUsd = DEFAULT_POLICY.impactCautionUsd;
+    const head = ["Venue", "Platform", "Displayed", "Disp. gap", "Executable", "Exec. gap", ...(opts.ladder ? [`Impact $${impactUsd}`] : []), "Mode / vendor", "Verdict"];
+    const table = new Table({ head, colAligns: ["left", "left", "right", "right", "right", "right", ...(opts.ladder ? ["right" as const] : []), "left", "left"] });
+    for (const v of card.venues) {
+      const row = card.rows.find((r) => r.symbol === v.symbol);
+      table.push([
+        card.bestVenue?.symbol === v.symbol ? pc.bold(pc.cyan(`${v.symbol} *`)) : v.symbol,
+        platformLabel(v.platform),
+        usd(row?.perShare),
+        pct(v.displayedGapPct),
+        usd(v.fillPerShare),
+        pct(v.executableGapPct),
+        ...(opts.ladder ? [pct(v.impactPct[impactUsd])] : []),
+        modeCell(v.quote),
+        verdictBadge(v.verdict),
+      ]);
+    }
+    console.log(table.toString());
+
+    for (const v of card.venues) {
+      const shown = v.reasons.filter((r) => r.severity !== "info" || v.verdict === "GO");
+      if (!shown.length) continue;
+      console.log(`${verdictBadge(v.verdict)} ${pc.bold(v.symbol)}`);
+      shown.forEach((r, i) => {
+        const color = r.severity === "block" ? pc.red : r.severity === "caution" ? pc.yellow : pc.dim;
+        console.log(`   ${i + 1}. ${color(r.message)}`);
+      });
+    }
+
+    const best = card.bestVenue;
+    console.log(
+      best
+        ? `${pc.bold("Best venue:")} ${pc.cyan(best.symbol)} (${best.verdict}, ${pct(best.executableGapPct)} vs the stock, ${usd(best.fillPerShare)}/share)`
+        : pc.red(pc.bold("No safe venue right now.")),
+    );
+    console.log(pc.dim("Displayed = on-chain token price per share. Executable = what a real quote for this size pays per share."));
   });
 
 program
