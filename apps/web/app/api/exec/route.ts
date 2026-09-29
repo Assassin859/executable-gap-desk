@@ -4,7 +4,7 @@ import { execGuard, parseExecRequest } from "@/lib/execGuard";
 import { loadLocalEnv, REPO_ROOT } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 600;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const guard = execGuard({ EXECUTE_MODE: process.env.EXECUTE_MODE, VERCEL: process.env.VERCEL }, { host: req.headers.get("host"), forwardedFor: req.headers.get("x-forwarded-for") });
