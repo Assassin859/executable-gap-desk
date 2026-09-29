@@ -1,0 +1,788 @@
+{
+  "recordedAt": "2026-09-29T14:32:17.616Z",
+  "wallet": "redacted",
+  "quotes": {
+    "AAPLB@25": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "25000000000000000000",
+          "toTokenAmount": "75146926693956508",
+          "tradeFee": "0.01920416",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0006210286",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a",
+            "tokenSymbol": "AAPLB",
+            "tokenUnitPrice": "332.60073837954019845840000000",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Metric",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a",
+                "tokenSymbol": "AAPLB",
+                "tokenUnitPrice": "332.60073837954019845840000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "AAPLon@100": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "100000000000000000000",
+          "toTokenAmount": "300001636921200576",
+          "tradeFee": "0.0199822",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0000000000",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4",
+            "tokenSymbol": "AAPLon",
+            "tokenUnitPrice": "333.45698746645636531",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Rfq Halfmoon",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4",
+                "tokenSymbol": "AAPLon",
+                "tokenUnitPrice": "333.45698746645636531",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "AAPLon@25": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "25000000000000000000",
+          "toTokenAmount": "75000409230300144",
+          "tradeFee": "0.0199822",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0000000000",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4",
+            "tokenSymbol": "AAPLon",
+            "tokenUnitPrice": "333.45698746645636531",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Rfq Halfmoon",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4",
+                "tokenSymbol": "AAPLon",
+                "tokenUnitPrice": "333.45698746645636531",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "AAPLon@500": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "500000000000000000000",
+          "toTokenAmount": "1500008184606002936",
+          "tradeFee": "0.01965954",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0000000000",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4",
+            "tokenSymbol": "AAPLon",
+            "tokenUnitPrice": "333.45698746645636531",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Rfq Halfmoon",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4",
+                "tokenSymbol": "AAPLon",
+                "tokenUnitPrice": "333.45698746645636531",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "AAPLx@25": {
+      "ok": false,
+      "httpStatus": 200,
+      "code": 40374,
+      "msg": "Insufficient liquidity for a quote. Please decrease the transaction amount or try again later."
+    },
+    "MSTRB@25": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "25000000000000000000",
+          "toTokenAmount": "160056630842612510",
+          "tradeFee": "0.01973638",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0001061722",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0xe87afb3076aeb0f9b14e368de8145ae6a2826a14",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14",
+            "tokenSymbol": "MSTRB",
+            "tokenUnitPrice": "156.13000000000000000000000000",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Metric",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14",
+                "tokenSymbol": "MSTRB",
+                "tokenUnitPrice": "156.13000000000000000000000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "MSTRon@25": {
+      "ok": false,
+      "httpStatus": 200,
+      "code": 40374,
+      "msg": "Insufficient liquidity for a quote. Please decrease the transaction amount or try again later."
+    },
+    "MSTRx@25": {
+      "ok": false,
+      "httpStatus": 200,
+      "code": 40374,
+      "msg": "Insufficient liquidity for a quote. Please decrease the transaction amount or try again later."
+    },
+    "NVDAB@100": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "100000000000000000000",
+          "toTokenAmount": "432485880088384641",
+          "tradeFee": "0.01998546",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0005319827",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+            "tokenSymbol": "NVDAB",
+            "tokenUnitPrice": "231.26983972703636952285000000",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Uniswap V3",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+                "tokenSymbol": "NVDAB",
+                "tokenUnitPrice": "231.26983972703636952285000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "NVDAB@25": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "25000000000000000000",
+          "toTokenAmount": "108124064892597476",
+          "tradeFee": "0.01974018",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0005079959",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+            "tokenSymbol": "NVDAB",
+            "tokenUnitPrice": "231.28985529151142568015000000",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Uniswap V3",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+                "tokenSymbol": "NVDAB",
+                "tokenUnitPrice": "231.28985529151142568015000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "NVDAB@500": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "500000000000000000000",
+          "toTokenAmount": "2162388322553375349",
+          "tradeFee": "0.01938813",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0021124513",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+            "tokenSymbol": "NVDAB",
+            "tokenUnitPrice": "231.26983972703636952285000000",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Uniswap V3",
+                "percent": "20.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+                "tokenSymbol": "NVDAB",
+                "tokenUnitPrice": "231.26983972703636952285000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            },
+            {
+              "dexProtocol": {
+                "dexName": "Pancakeswap V3",
+                "percent": "80.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+                "tokenSymbol": "NVDAB",
+                "tokenUnitPrice": "231.26983972703636952285000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "NVDAon@25": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "25000000000000000000",
+          "toTokenAmount": "108081065824110385",
+          "tradeFee": "0.02021962",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0006105461",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x02fca66c1d1afb4e2a7884261eb00f63598a7436--0xa9ee28c80f960b889dfbd1902055218cba016f75",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0xa9ee28c80f960b889dfbd1902055218cba016f75",
+            "tokenSymbol": "NVDAon",
+            "tokenUnitPrice": "231.441299658069463341",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Uniswap V3",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+                "tokenSymbol": "NVDAB",
+                "tokenUnitPrice": "231.26983972703636952285000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            },
+            {
+              "dexProtocol": {
+                "dexName": "Uniswap V4",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+                "tokenSymbol": "NVDAB",
+                "tokenUnitPrice": "231.26983972703636952285000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "1",
+              "toToken": {
+                "tokenContractAddress": "0xa9ee28c80f960b889dfbd1902055218cba016f75",
+                "tokenSymbol": "NVDAon",
+                "tokenUnitPrice": "231.441299658069463341",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "2"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "NVDAx@25": {
+      "ok": false,
+      "httpStatus": 200,
+      "code": 40374,
+      "msg": "Insufficient liquidity for a quote. Please decrease the transaction amount or try again later."
+    },
+    "SPYB@25": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "25000000000000000000",
+          "toTokenAmount": "32589804710694294",
+          "tradeFee": "0.01886424",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0012072312",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x7138b48df7d98d7e3cc221bfe7192d0a178182d8",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8",
+            "tokenSymbol": "SPYB",
+            "tokenUnitPrice": "767.06457095428620978594000000",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Metric",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8",
+                "tokenSymbol": "SPYB",
+                "tokenUnitPrice": "767.06457095428620978594000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "SPYon@25": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "25000000000000000000",
+          "toTokenAmount": "32326528907623435",
+          "tradeFee": "0.01973638",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0043052553",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x6a708ead771238919d85930b5a0f10454e1c331a",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997122289492726",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x6a708ead771238919d85930b5a0f10454e1c331a",
+            "tokenSymbol": "SPYon",
+            "tokenUnitPrice": "772.696381688599725075",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Pancakeswap V3",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997122289492726",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x6a708ead771238919d85930b5a0f10454e1c331a",
+                "tokenSymbol": "SPYon",
+                "tokenUnitPrice": "772.696381688599725075",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "SPYx@25": {
+      "ok": false,
+      "httpStatus": 200,
+      "code": 40374,
+      "msg": "Insufficient liquidity for a quote. Please decrease the transaction amount or try again later."
+    }
+  }
+}

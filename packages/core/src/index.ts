@@ -6,3 +6,4 @@ export * from "./session";
 export * from "./prices";
 export * from "./matrix";
 export * from "./signer";
+export * from "./quotes";

@@ -80,3 +80,38 @@ export const DynamicSchema = z.looseObject({
     .nullish(),
 });
 export type Dynamic = z.infer<typeof DynamicSchema>;
+
+const QuoteTokenSchema = z.looseObject({
+  tokenContractAddress: z.string(),
+  tokenSymbol: str,
+  tokenUnitPrice: num,
+  decimal: z.coerce.number(),
+});
+
+/** One route from GET /api/v1/dex/aggregator/quote; the docs publish no response schema, so this mirrors live responses. */
+export const QuoteRouteSchema = z.looseObject({
+  quoteId: str,
+  vendorName: str,
+  executionMode: str,
+  fromTokenAmount: z.string(),
+  toTokenAmount: z.string().nullish(),
+  tradeFee: num,
+  estimateGasFee: num,
+  priceImpactPercent: num,
+  router: str,
+  approveTarget: str,
+  isBest: z.boolean().nullish(),
+  fromToken: QuoteTokenSchema.nullish(),
+  toToken: QuoteTokenSchema.nullish(),
+  dexRouterList: z
+    .array(
+      z.looseObject({
+        dexProtocol: z.looseObject({ dexName: str, percent: num }).nullish(),
+        fromToken: QuoteTokenSchema.nullish(),
+        toToken: QuoteTokenSchema.nullish(),
+      }),
+    )
+    .nullish(),
+});
+export const QuoteResponseSchema = z.array(QuoteRouteSchema);
+export type QuoteRoute = z.infer<typeof QuoteRouteSchema>;
