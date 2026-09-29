@@ -9,6 +9,7 @@ export * from "./signer";
 export * from "./quotes";
 export * from "./gate";
 export * from "./snapshot";
+export * from "./publicSnapshot";
 export * from "./trade";
 export * from "./chain";
 export * from "./baw";

@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0b0f14;
+  --color-panel: #121821;
+  --color-line: #1f2a37;
+  --color-muted: #8b98a9;
+  --color-go: #22c55e;
+  --color-caution: #f59e0b;
+  --color-block: #ef4444;
+  --color-accent: #f0b90b;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ink);
+  color: #e6edf3;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}

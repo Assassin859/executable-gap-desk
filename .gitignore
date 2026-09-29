@@ -10,3 +10,4 @@ receipts/*
 .DS_Store
 .vercel/
 .next/
+next-env.d.ts

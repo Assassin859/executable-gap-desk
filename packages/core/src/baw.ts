@@ -46,7 +46,7 @@ export function createBawRunner(timeoutMs = 120_000): BawRunner {
         reject(err);
         return;
       }
-      const child = spawn(bin.cmd, [...bin.prefix, ...args], { shell: false, windowsHide: true });
+      const child = spawn(/*turbopackIgnore: true*/ bin.cmd, [...bin.prefix, ...args], { shell: false, windowsHide: true });
       let stdout = "";
       let stderr = "";
       const timer = setTimeout(() => child.kill(), timeoutMs);

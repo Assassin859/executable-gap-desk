@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "id": "2026-09-29T16-03-31-074Z-exec-MSTRB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T16:03:31.074Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "MSTRB",
+  "venue": {
+    "ticker": "MSTR",
+    "platform": "bstocks",
+    "address": "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14"
+  },
+  "usd": 1,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is +0.04% off the stock ($153.32 per share vs the stock at $153.25)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 153.253333,
+    "displayedGapPct": 0.000565514617551617,
+    "executableGapPct": 0.00044120546844610603,
+    "fillPerShare": 153.3209492085772,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.006522265907965416,
+    "fillPerShare": 153.3209492085772,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "USD1",
+      "WBNB",
+      "MSTRB"
+    ],
+    "vendorPriceImpact": 0.0028112824,
+    "networkFeeUsd": 0.01779904,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "41934267991288669",
+    "bnb": "1114125284880510",
+    "allowance": "0"
+  },
+  "approval": {
+    "needed": true,
+    "amount": "1000000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "0",
+    "to": "0x55d398326f99059fF775485246999027B3197955",
+    "value": "0"
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "6489654578425588",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "55408056",
+    "worstCaseGapPct": 0.005468548209493607
+  },
+  "simulation": {
+    "source": "eth_call-state-override",
+    "status": "SUCCESS",
+    "failReason": null,
+    "tokenDelta": null,
+    "apiStatus": "FAILED",
+    "apiFailReason": "execution reverted: BEP20: transfer amount exceeds balance",
+    "overrides": {
+      "token": "0x55d398326f99059fF775485246999027B3197955",
+      "balance": "1000000000000000000",
+      "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+      "allowance": "1000000000000000000"
+    }
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T16:03:31.074Z",
+      "step": "gate",
+      "detail": "MSTRB at $1"
+    },
+    {
+      "at": "2026-09-29T16:03:35.504Z",
+      "step": "gate passed",
+      "detail": "GO, fill +0.03% vs the stock"
+    },
+    {
+      "at": "2026-09-29T16:03:39.552Z",
+      "step": "approval checked",
+      "detail": "exact 1 USDT to 0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+    },
+    {
+      "at": "2026-09-29T16:03:39.552Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T16:03:40.035Z",
+      "step": "swap built",
+      "detail": "min receive 0.00648965 MSTRB"
+    },
+    {
+      "at": "2026-09-29T16:03:40.481Z",
+      "step": "simulated",
+      "detail": "eth_call-state-override"
+    },
+    {
+      "at": "2026-09-29T16:03:40.481Z",
+      "step": "dry run: not broadcast",
+      "detail": "pass --live to sign with the Agentic Wallet"
+    }
+  ]
+}
