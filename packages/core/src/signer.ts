@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { KEYED_HOST, KEYED_PREFIX } from "./config";
-import { getJson, type GetJsonOptions } from "./http";
+import { ApiError, getJson, passthroughLimiter, type GetJsonOptions } from "./http";
 
 export interface Credentials {
   apiKey: string;
@@ -55,20 +55,38 @@ export function signedHeaders(
   };
 }
 
+export interface SignedGetOptions extends Omit<GetJsonOptions, "headers"> {
+  /** Base delay for retry backoff; tests shrink it. */
+  backoffMs?: number;
+}
+
 /**
- * Signed GET against the keyed Web3 API. No automatic retries: the signature doubles as a
- * single-use nonce (replays fail with 40103), so a retry must be re-signed by the caller.
+ * Signed GET against the keyed Web3 API. The signature doubles as a single-use nonce (replays
+ * fail with 40103) and the timestamp window is 5s, so every attempt is signed inside its limiter
+ * slot, and retries on 429/5xx/network errors are re-signed.
  */
 export async function signedGet(
   pathWithQuery: string,
   creds: Credentials = credentialsFromEnv(),
-  opts: Omit<GetJsonOptions, "headers"> = {},
+  opts: SignedGetOptions = {},
 ): Promise<unknown> {
+  const { limiter = passthroughLimiter, retries = 2, backoffMs = 300, ...rest } = opts;
   const requestPath = withBuildPrefix(pathWithQuery);
-  return getJson(`${KEYED_HOST}${requestPath}`, {
-    ...opts,
-    retries: 0,
-    endpoint: opts.endpoint ?? requestPath.split("?")[0],
-    headers: signedHeaders("GET", requestPath, creds),
-  });
+  const endpoint = opts.endpoint ?? requestPath.split("?")[0];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await limiter(() =>
+        getJson(`${KEYED_HOST}${requestPath}`, {
+          ...rest,
+          retries: 0,
+          limiter: passthroughLimiter,
+          endpoint,
+          headers: signedHeaders("GET", requestPath, creds),
+        }),
+      );
+    } catch (err) {
+      if (!(err instanceof ApiError) || !err.retryable || attempt >= retries) throw err;
+      await new Promise((r) => setTimeout(r, backoffMs * 2 ** attempt + Math.random() * 100));
+    }
+  }
 }

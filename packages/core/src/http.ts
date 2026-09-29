@@ -51,6 +51,38 @@ export function createLimiter(concurrency: number): Limiter {
 
 export const defaultLimiter = createLimiter(8);
 
+export const passthroughLimiter: Limiter = (task) => task();
+
+/**
+ * Token bucket: at most `burst` tasks start immediately, then one every 1000/rps ms.
+ * Tasks start in call order; it limits start rate, not concurrency.
+ */
+export function createRateLimiter(rps: number, burst: number = rps): Limiter {
+  let tokens = burst;
+  let last = Date.now();
+  let chain: Promise<void> = Promise.resolve();
+  const take = async () => {
+    for (;;) {
+      const now = Date.now();
+      tokens = Math.min(burst, tokens + ((now - last) * rps) / 1000);
+      last = now;
+      if (tokens >= 1) {
+        tokens -= 1;
+        return;
+      }
+      await sleep(Math.ceil(((1 - tokens) * 1000) / rps));
+    }
+  };
+  return <T>(task: () => Promise<T>) => {
+    const slot = chain.then(take);
+    chain = slot.catch(() => undefined);
+    return slot.then(task);
+  };
+}
+
+/** Binance Web3 keyed API allows 5 requests/second per endpoint. */
+export const quoteLimiter = createRateLimiter(5);
+
 export interface GetJsonOptions {
   headers?: Record<string, string>;
   timeoutMs?: number;

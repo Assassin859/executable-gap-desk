@@ -213,8 +213,8 @@ program
       return;
     }
     const chains = Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
-    const names = chains.map((c) => String(c.chainName ?? c.name ?? c.chainId ?? "?"));
-    const bsc = chains.some((c) => String(c.chainId ?? c.chainIndex ?? "") === CHAIN_ID);
+    const names = chains.map((c) => String(c.shortName ?? c.name ?? c.binanceChainId ?? "?"));
+    const bsc = chains.some((c) => String(c.binanceChainId ?? "") === CHAIN_ID);
     console.log(`${pc.green("signed request OK")} ${pc.dim(`key ${creds.apiKey.slice(0, 4)}…${creds.apiKey.slice(-4)}, ${ms} ms`)}`);
     console.log(`  supported chains  ${names.length ? names.join(", ") : pc.dim(JSON.stringify(data).slice(0, 120))}`);
     if (chains.length) console.log(`  BSC (56)          ${bsc ? pc.green("supported") : pc.red("not listed")}`);

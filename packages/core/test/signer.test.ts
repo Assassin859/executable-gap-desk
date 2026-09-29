@@ -1,12 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   MissingCredentialsError,
   buildPreHash,
   credentialsFromEnv,
   sign,
+  signedGet,
   signedHeaders,
   withBuildPrefix,
 } from "../src/signer";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const TS = "2026-05-11T10:08:57.715Z";
 const PATH = "/build/api/v1/dex/aggregator/supported/chain";
@@ -32,6 +37,30 @@ describe("signer", () => {
   it("signs the /build path even when the caller omits it", () => {
     const h = signedHeaders("GET", "/api/v1/dex/aggregator/supported/chain", { apiKey: "k", apiSecret: "test-secret" }, "", new Date(TS));
     expect(h).toEqual({ "X-OC-APIKEY": "k", "X-OC-TIMESTAMP": TS, "X-OC-SIGN": EXPECTED_SIGN });
+  });
+
+  it("re-signs each retry with a fresh timestamp after a 429", async () => {
+    const seen: Array<Record<string, string>> = [];
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      seen.push(init.headers as Record<string, string>);
+      return seen.length === 1
+        ? new Response(JSON.stringify({ code: 42900, msg: "Too many requests" }), { status: 429 })
+        : new Response(JSON.stringify({ code: 0, msg: "success", data: ["ok"] }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const data = await signedGet("/api/v1/x", { apiKey: "k", apiSecret: "s" }, { backoffMs: 5 });
+    expect(data).toEqual(["ok"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("https://web3.binance.com/build/api/v1/x");
+    expect(seen[0]?.["X-OC-TIMESTAMP"]).not.toBe(seen[1]?.["X-OC-TIMESTAMP"]);
+    expect(seen[0]?.["X-OC-SIGN"]).not.toBe(seen[1]?.["X-OC-SIGN"]);
+  });
+
+  it("does not retry signature errors", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ code: 40102, msg: "Invalid signature" }), { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(signedGet("/api/v1/x", { apiKey: "k", apiSecret: "s" }, { backoffMs: 5 })).rejects.toMatchObject({ code: 40102 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("reads credentials from env and fails clearly when missing", () => {

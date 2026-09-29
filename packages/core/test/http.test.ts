@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, createLimiter, getJson, unwrapEnvelope } from "../src/index";
+import { ApiError, createLimiter, createRateLimiter, getJson, unwrapEnvelope } from "../src/index";
 
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -46,6 +46,35 @@ describe("getJson", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(getJson("https://example.test/x")).rejects.toMatchObject({ code: 40367 });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("createRateLimiter", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("starts 5 tasks immediately, then one every 200ms", async () => {
+    vi.useFakeTimers();
+    const limit = createRateLimiter(5);
+    const t0 = Date.now();
+    const started: number[] = [];
+    const all = Promise.all(Array.from({ length: 7 }, () => limit(async () => void started.push(Date.now() - t0))));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(started).toEqual([0, 0, 0, 0, 0]);
+    await vi.advanceTimersByTimeAsync(199);
+    expect(started).toHaveLength(5);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(started).toHaveLength(6);
+    await vi.advanceTimersByTimeAsync(200);
+    await all;
+    expect(started).toEqual([0, 0, 0, 0, 0, 200, 400]);
+  });
+
+  it("keeps going after a task rejects", async () => {
+    const limit = createRateLimiter(100);
+    await expect(limit(async () => Promise.reject(new Error("boom")))).rejects.toThrow("boom");
+    await expect(limit(async () => "ok")).resolves.toBe("ok");
   });
 });
 
