@@ -1,0 +1,483 @@
+{
+  "recordedAt": "2026-09-29T15:10:18.214Z",
+  "wallet": "0x1111111111111111111111111111111111111111",
+  "calls": {
+    "approve": {
+      "ok": true,
+      "data": [
+        {
+          "data": "0x095ea7b3000000000000000000000000b44446b0c8e56988c34f7ff73ae904982b5fdda500000000000000000000000000000000000000000000000014d1120d7b160000",
+          "dexContractAddress": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "gasLimit": "70000",
+          "gasPrice": "58158239"
+        }
+      ]
+    },
+    "usdtNvdab.quote": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "1500000000000000000",
+          "toTokenAmount": "6501126028771288",
+          "tradeFee": "0.01837338",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0001484914",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997270785280864",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+            "tokenSymbol": "NVDAB",
+            "tokenUnitPrice": "230.77945839739749366900000000",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Metric",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997270785280864",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+                "tokenSymbol": "NVDAB",
+                "tokenUnitPrice": "230.77945839739749366900000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "usdtNvdab.swap": {
+      "ok": true,
+      "data": {
+        "executionMode": "SWAP",
+        "routerResult": {
+          "binanceChainId": "56",
+          "vendorName": "LiquidMesh",
+          "fromTokenAmount": "1500000000000000000",
+          "toTokenAmount": "6501126028771288",
+          "tradeFee": "0.01992708",
+          "estimateGasFee": "450000",
+          "router": "0x55d398326f99059ff775485246999027b3197955--0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "priceImpactPercent": "0.0001484914",
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Metric",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997270785280864",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+                "tokenSymbol": "NVDAB",
+                "tokenUnitPrice": "230.77945839739749366900000000",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "fromToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997270785280864",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+            "tokenSymbol": "NVDAB",
+            "tokenUnitPrice": "230.77945839739749366900000000",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        },
+        "tx": {
+          "from": "0x1111111111111111111111111111111111111111",
+          "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "data": "0xad43f73d0000000000000000000000000000000000000000000000004a8f00f66400099700000000000000000000000000000000000000000000000000000000000000000000000000000000000000003d90f66b534dd8482b181e24655a9e8265316be900000000000000000000000055d398326f99059ff775485246999027b319795500000000000000000000000000000000000000000000000014d1120d7b16000000000000000000000000000002fca66c1d1afb4e2a7884261eb00f63598a74360000000000000000000000000000000000000000000000000016fb2d0d0c0a67000000000000000000000000d2a27f8fdbaaec431d59046a8bce4e5db665a271000000000000000000000000000000000000000000000000001718bd5b95bfd8000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000004e447ee97ff000000000000000000000000000000000000000000000000010d2d1cbd2fce83000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001718bd5b95bfd8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000055d398326f99059ff775485246999027b319795500000000000000000000000002fca66c1d1afb4e2a7884261eb00f63598a743600000000000000000000000000000000000000000000000014d1120d7b1600000000000000000000000000000000000000000000000000000016fb2d0d0c0a68000000000000000000000000000000000000000000000000000000006abbd6cd00000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000480000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000014d1120d7b160000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000016000000000000000000000000055d398326f99059ff775485246999027b31979550000000000000000000000000000000000000000000000000000000000000001000000000000000000000000d6f33a3c5db5b48dcc4508a19981bf8c2998f4590000000000000000000000000000000000000000000000000000000000000001000000000000000000000000d6f33a3c5db5b48dcc4508a19981bf8c2998f4590000000000000000000000000000000000000000000000000000000000000001800000000000000000002710c6448de0b0ae196e5602e349b8a1a1a7a7c10af700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000004000000000000000000000000055d398326f99059ff775485246999027b319795500000000000000000000000002fca66c1d1afb4e2a7884261eb00f63598a743600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "value": "0",
+          "gas": "450000",
+          "gasPrice": "58194605",
+          "maxPriorityFeePerGas": "58194605",
+          "minReceiveAmount": "6468620398627431",
+          "slippagePercent": "0.5",
+          "signatureData": null,
+          "computeUnitPrice": null,
+          "computeUnitLimit": null
+        },
+        "rfq": null
+      }
+    },
+    "usdtNvdab.simulate": {
+      "ok": true,
+      "data": {
+        "status": "FAILED",
+        "failReason": "execution reverted: BEP20: transfer amount exceeds balance",
+        "balanceChanges": [],
+        "allowanceChanges": []
+      }
+    },
+    "bnbUsdt.quote": {
+      "ok": true,
+      "data": [
+        {
+          "quoteId": "fixture",
+          "vendorName": "LiquidMesh",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "3300000000000000",
+          "toTokenAmount": "2513372179457247845",
+          "tradeFee": "0.01923269",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "0.0005970785",
+          "router": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee--0x55d398326f99059ff775485246999027b3197955",
+          "fromToken": {
+            "tokenContractAddress": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+            "tokenSymbol": "BNB",
+            "tokenUnitPrice": "758.990782766692814088408565907300532151",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997005710200788",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Genius",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "tokenSymbol": "BNB",
+                "tokenUnitPrice": "758.990782766692814088408565907300532151",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+                "tokenSymbol": "USDC",
+                "tokenUnitPrice": "0.9999952073883848",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "0"
+            },
+            {
+              "dexProtocol": {
+                "dexName": "Uniswap V3",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+                "tokenSymbol": "USDC",
+                "tokenUnitPrice": "0.9999952073883848",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+                "tokenSymbol": "BSC_ETH",
+                "tokenUnitPrice": "2707.01494092897889874286324120594837",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "0"
+            },
+            {
+              "dexProtocol": {
+                "dexName": "Genius",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+                "tokenSymbol": "BSC_ETH",
+                "tokenUnitPrice": "2707.01494092897889874286324120594837",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997005710200788",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": true,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        },
+        {
+          "quoteId": "fixture",
+          "vendorName": "Lifi",
+          "executionMode": "SWAP",
+          "binanceChainId": "56",
+          "fromTokenAmount": "3300000000000000",
+          "toTokenAmount": "2511839368137849610",
+          "tradeFee": "0.01923269",
+          "estimateGasFee": "450000",
+          "priceImpactPercent": "-0.11163384",
+          "router": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee--0x55d398326f99059ff775485246999027b3197955",
+          "fromToken": {
+            "tokenContractAddress": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+            "tokenSymbol": "BNB",
+            "tokenUnitPrice": "758.990782766692814088408565907300532151",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997005710200788",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Fly",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "tokenSymbol": "BNB",
+                "tokenUnitPrice": "758.990782766692814088408565907300532151",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997005710200788",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "isBest": false,
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        }
+      ]
+    },
+    "bnbUsdt.swap": {
+      "ok": true,
+      "data": {
+        "executionMode": "SWAP",
+        "routerResult": {
+          "binanceChainId": "56",
+          "vendorName": "LiquidMesh",
+          "fromTokenAmount": "3300000000000000",
+          "toTokenAmount": "2513372179457247845",
+          "tradeFee": "0.01923269",
+          "estimateGasFee": "450000",
+          "router": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee--0x55d398326f99059ff775485246999027b3197955",
+          "priceImpactPercent": "0.0005970785",
+          "dexRouterList": [
+            {
+              "dexProtocol": {
+                "dexName": "Genius",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "tokenSymbol": "BNB",
+                "tokenUnitPrice": "758.990782766692814088408565907300532151",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+                "tokenSymbol": "USDC",
+                "tokenUnitPrice": "0.9999952073883848",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "0"
+            },
+            {
+              "dexProtocol": {
+                "dexName": "Uniswap V3",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+                "tokenSymbol": "USDC",
+                "tokenUnitPrice": "0.9999952073883848",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+                "tokenSymbol": "BSC_ETH",
+                "tokenUnitPrice": "2707.01494092897889874286324120594837",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "0"
+            },
+            {
+              "dexProtocol": {
+                "dexName": "Genius",
+                "percent": "100.00"
+              },
+              "fromToken": {
+                "tokenContractAddress": "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+                "tokenSymbol": "BSC_ETH",
+                "tokenUnitPrice": "2707.01494092897889874286324120594837",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "fromTokenIndex": "0",
+              "toToken": {
+                "tokenContractAddress": "0x55d398326f99059ff775485246999027b3197955",
+                "tokenSymbol": "USDT",
+                "tokenUnitPrice": "0.9997005710200788",
+                "decimal": "18",
+                "isHoneyPot": false,
+                "taxRate": "0"
+              },
+              "toTokenIndex": "1"
+            }
+          ],
+          "fromToken": {
+            "tokenContractAddress": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+            "tokenSymbol": "BNB",
+            "tokenUnitPrice": "758.990782766692814088408565907300532151",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "toToken": {
+            "tokenContractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenSymbol": "USDT",
+            "tokenUnitPrice": "0.9997005710200788",
+            "decimal": "18",
+            "isHoneyPot": false,
+            "taxRate": "0"
+          },
+          "feeAmount": null,
+          "feeToken": null,
+          "actualSwapAmount": null
+        },
+        "tx": {
+          "from": "0x1111111111111111111111111111111111111111",
+          "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+          "data": "0xad43f73d0000000000000000000000000000000000000000000000004a8f00f664000d3500000000000000000000000000000000000000000000000000000000000000000000000000000000000000003d90f66b534dd8482b181e24655a9e8265316be90000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bb9551fc2400000000000000000000000000055d398326f99059ff775485246999027b319795500000000000000000000000000000000000000000000000022b4a52ff92c9205000000000000000000000000d2a27f8fdbaaec431d59046a8bce4e5db665a27100000000000000000000000000000000000000000000000022e14aae48e60a65000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000009c447ee97ff000000000000000000000000000000000000000000000000fa29242c6bfcbf0a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022e14aae48e60a650000000000000000000000000000000000000000000000000000000000000000000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee00000000000000000000000055d398326f99059ff775485246999027b3197955000000000000000000000000000000000000000000000000000bb9551fc2400000000000000000000000000000000000000000000000000022b4a52ff92c9206000000000000000000000000000000000000000000000000000000006abbd6cd00000000000000000000000000000000000000000000000000000000000001c0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000009600000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000bb9551fc2400000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000260000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000160000000000000000000000000bb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c00000000000000000000000000000000000000000000000000000000000000010000000000000000000000006581208a3cb0adadaff9f054dc85b42e7bf498d000000000000000000000000000000000000000000000000000000000000000010000000000000000000000006581208a3cb0adadaff9f054dc85b42e7bf498d00000000000000000000000000000000000000000000000000000000000000001800000000000000000002710c2a6300eeaa828c8cf6e5906e65ea0f9b253c956000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000040000000000000000000000000bb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c0000000000000000000000008ac76a51cc950d9822d68b83fe1ad97b32cd580d00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001600000000000000000000000008ac76a51cc950d9822d68b83fe1ad97b32cd580d000000000000000000000000000000000000000000000000000000000000000100000000000000000000000013643189a39e3d6b2c6cab20bb705a11ccb76af9000000000000000000000000000000000000000000000000000000000000000100000000000000000000000013643189a39e3d6b2c6cab20bb705a11ccb76af90000000000000000000000000000000000000000000000000000000000000001800000000000000000002710d8cc6bfdee087148c220e9141a075d18418abbac0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000008ac76a51cc950d9822d68b83fe1ad97b32cd580d0000000000000000000000002170ed0880ac9a755fd29b2688956bd959f933f800000000000000000000000000000000000000000000000000000000000001f4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001600000000000000000000000002170ed0880ac9a755fd29b2688956bd959f933f800000000000000000000000000000000000000000000000000000000000000010000000000000000000000006581208a3cb0adadaff9f054dc85b42e7bf498d000000000000000000000000000000000000000000000000000000000000000010000000000000000000000006581208a3cb0adadaff9f054dc85b42e7bf498d00000000000000000000000000000000000000000000000000000000000000001000000000000000000002710c2a6300eeaa828c8cf6e5906e65ea0f9b253c9560000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000400000000000000000000000002170ed0880ac9a755fd29b2688956bd959f933f800000000000000000000000055d398326f99059ff775485246999027b319795500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "value": "3300000000000000",
+          "gas": "450000",
+          "gasPrice": "56309206",
+          "maxPriorityFeePerGas": "56309206",
+          "minReceiveAmount": "2500805318559961605",
+          "slippagePercent": "0.5",
+          "signatureData": null,
+          "computeUnitPrice": null,
+          "computeUnitLimit": null
+        },
+        "rfq": null
+      }
+    },
+    "bnbUsdt.simulate": {
+      "ok": true,
+      "data": {
+        "status": "SUCCESS",
+        "failReason": "",
+        "balanceChanges": [
+          {
+            "contractAddress": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenType": "Erc20",
+            "change": "2513372179457247845",
+            "owner": "0x1111111111111111111111111111111111111111"
+          },
+          {
+            "contractAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "tokenType": "Native",
+            "change": "-3300000000000000",
+            "owner": "0x1111111111111111111111111111111111111111"
+          }
+        ],
+        "allowanceChanges": []
+      }
+    }
+  }
+}

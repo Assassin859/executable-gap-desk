@@ -55,7 +55,7 @@ export function signedHeaders(
   };
 }
 
-export interface SignedGetOptions extends Omit<GetJsonOptions, "headers"> {
+export interface SignedGetOptions extends Omit<GetJsonOptions, "headers" | "method" | "body"> {
   /** Base delay for retry backoff; tests shrink it. */
   backoffMs?: number;
 }
@@ -65,10 +65,30 @@ export interface SignedGetOptions extends Omit<GetJsonOptions, "headers"> {
  * fail with 40103) and the timestamp window is 5s, so every attempt is signed inside its limiter
  * slot, and retries on 429/5xx/network errors are re-signed.
  */
-export async function signedGet(
+export function signedGet(
   pathWithQuery: string,
   creds: Credentials = credentialsFromEnv(),
   opts: SignedGetOptions = {},
+): Promise<unknown> {
+  return signedRequest("GET", pathWithQuery, undefined, creds, opts);
+}
+
+/** Signed POST; the exact serialized body is part of the signature. Only use for idempotent calls. */
+export function signedPost(
+  path: string,
+  body: unknown,
+  creds: Credentials = credentialsFromEnv(),
+  opts: SignedGetOptions = {},
+): Promise<unknown> {
+  return signedRequest("POST", path, JSON.stringify(body), creds, opts);
+}
+
+async function signedRequest(
+  method: "GET" | "POST",
+  pathWithQuery: string,
+  body: string | undefined,
+  creds: Credentials,
+  opts: SignedGetOptions,
 ): Promise<unknown> {
   const { limiter = passthroughLimiter, retries = 2, backoffMs = 300, ...rest } = opts;
   const requestPath = withBuildPrefix(pathWithQuery);
@@ -78,10 +98,12 @@ export async function signedGet(
       return await limiter(() =>
         getJson(`${KEYED_HOST}${requestPath}`, {
           ...rest,
+          method,
+          ...(body === undefined ? {} : { body }),
           retries: 0,
           limiter: passthroughLimiter,
           endpoint,
-          headers: signedHeaders("GET", requestPath, creds),
+          headers: signedHeaders(method, requestPath, creds, body ?? ""),
         }),
       );
     } catch (err) {

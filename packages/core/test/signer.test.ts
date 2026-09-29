@@ -6,6 +6,7 @@ import {
   sign,
   signedGet,
   signedHeaders,
+  signedPost,
   withBuildPrefix,
 } from "../src/signer";
 
@@ -54,6 +55,21 @@ describe("signer", () => {
     expect(fetchMock.mock.calls[1]?.[0]).toBe("https://web3.binance.com/build/api/v1/x");
     expect(seen[0]?.["X-OC-TIMESTAMP"]).not.toBe(seen[1]?.["X-OC-TIMESTAMP"]);
     expect(seen[0]?.["X-OC-SIGN"]).not.toBe(seen[1]?.["X-OC-SIGN"]);
+  });
+
+  it("signs POST requests over the exact JSON body it sends", async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => new Response(JSON.stringify({ code: 0, data: { status: "SUCCESS" } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const creds = { apiKey: "k", apiSecret: "s" };
+    const body = { binanceChainId: "56", evmTx: { from: "0xa", to: "0xb", data: "0x", value: "0" } };
+    await expect(signedPost("/api/v1/dex/pre-transaction/simulate", body, creds)).resolves.toEqual({ status: "SUCCESS" });
+    const init = fetchMock.mock.calls[0]![1];
+    const headers = init.headers as Record<string, string>;
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(JSON.stringify(body));
+    expect(headers["Content-Type"]).toBe("application/json");
+    const expected = sign(buildPreHash(headers["X-OC-TIMESTAMP"]!, "POST", "/build/api/v1/dex/pre-transaction/simulate", JSON.stringify(body)), "s");
+    expect(headers["X-OC-SIGN"]).toBe(expected);
   });
 
   it("does not retry signature errors", async () => {

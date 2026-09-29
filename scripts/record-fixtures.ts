@@ -4,6 +4,7 @@
  *   pnpm record-fixtures            public RWA data (list, market status, dynamic, asset status)
  *   pnpm record-fixtures --quotes   signed aggregator quotes for the fixture venues (needs .env.local;
  *                                   record during the US regular session)
+ *   pnpm record-fixtures --trade    approve / swap / simulate build responses (no signing, no broadcast)
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -13,14 +14,24 @@ import {
   CHAIN_ID,
   ENDPOINTS,
   ListSchema,
+  NATIVE_BNB,
   PUBLIC_HEADERS,
+  SIMULATE_PATH,
+  SwapResponseSchema,
+  USDT_BSC,
+  approvePath,
   credentialsFromEnv,
   getJson,
   parseRegistry,
   publicUrl,
   quoteLimiter,
   quotePath,
+  rawQuotePath,
   signedGet,
+  signedPost,
+  simulateBody,
+  swapPath,
+  usdToBaseUnits,
 } from "../packages/core/src/index";
 
 const TICKERS = new Set(["AAPL", "NVDA", "MSTR", "SPY"]);
@@ -92,9 +103,64 @@ async function recordQuotes() {
   save("quotes.json", { recordedAt: new Date().toISOString(), wallet: "redacted", quotes: sorted });
 }
 
+/** Swap and approve calldata embed the wallet (with and without 0x); fixtures use a placeholder instead. */
+const FIXTURE_WALLET = "0x1111111111111111111111111111111111111111";
+const redactWallet = (data: unknown, wallet: string): unknown => {
+  const w = wallet.toLowerCase().replace(/^0x/, "");
+  const text = JSON.stringify(data).replace(new RegExp(w, "gi"), FIXTURE_WALLET.slice(2));
+  return JSON.parse(text);
+};
+
+/**
+ * Build-only trade calls (nothing is signed or broadcast): the exact USDT approval, then quote, /swap
+ * and /simulate for USDT to NVDAB (reverts without a USDT balance) and BNB to USDT (succeeds).
+ */
+async function recordTrade() {
+  const envFile = resolve(root, ".env.local");
+  if (existsSync(envFile)) process.loadEnvFile(envFile);
+  const creds = credentialsFromEnv();
+  const wallet = process.env.GAP_WALLET_ADDRESS;
+  if (!wallet) throw new Error("GAP_WALLET_ADDRESS is not set in .env.local");
+  const out: Record<string, unknown> = {};
+  const capture = async <T>(label: string, fn: () => Promise<T>): Promise<T | null> => {
+    try {
+      const data = await fn();
+      out[label] = { ok: true, data };
+      console.log(label, "ok");
+      return data;
+    } catch (err) {
+      if (!(err instanceof ApiError)) throw err;
+      out[label] = { ok: false, httpStatus: err.httpStatus, code: err.code, msg: err.message };
+      console.log(label, `error ${err.code}`);
+      return null;
+    }
+  };
+
+  const usdt15 = usdToBaseUnits(1.5);
+  await capture("approve", () => signedGet(approvePath(USDT_BSC, usdt15), creds, { limiter: quoteLimiter }));
+  const pairs = [
+    { label: "usdtNvdab", fromToken: USDT_BSC, toToken: "0x02fca66c1d1afb4e2a7884261eb00f63598a7436", amount: usdt15 },
+    { label: "bnbUsdt", fromToken: NATIVE_BNB, toToken: USDT_BSC, amount: "3300000000000000" },
+  ];
+  for (const { label, ...p } of pairs) {
+    const params = { ...p, wallet };
+    const q = (await capture(`${label}.quote`, () => signedGet(rawQuotePath(params), creds, { limiter: quoteLimiter }))) as Array<{ quoteId: string }> | null;
+    if (!q?.[0]) continue;
+    const raw = await capture(`${label}.swap`, () => signedGet(swapPath({ ...params, quoteId: q[0]!.quoteId, slippagePct: 0.5 }), creds, { limiter: quoteLimiter }));
+    const tx = raw ? SwapResponseSchema.parse(raw).tx : null;
+    if (!tx) continue;
+    await capture(`${label}.simulate`, () =>
+      signedPost(SIMULATE_PATH, simulateBody({ from: tx.from, to: tx.to, data: tx.data, value: tx.value, gasLimit: tx.gas, gasPrice: tx.gasPrice }), creds, { limiter: quoteLimiter }),
+    );
+  }
+  const stripped = JSON.parse(JSON.stringify(out).replace(/"quoteId":"[0-9a-f]+"/g, '"quoteId":"fixture"'));
+  save("trade.json", { recordedAt: new Date().toISOString(), wallet: FIXTURE_WALLET, calls: redactWallet(stripped, wallet) });
+}
+
 async function main() {
   mkdirSync(outDir, { recursive: true });
   if (process.argv.includes("--quotes")) await recordQuotes();
+  else if (process.argv.includes("--trade")) await recordTrade();
   else await recordPublic();
 }
 

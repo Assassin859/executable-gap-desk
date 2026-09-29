@@ -87,6 +87,9 @@ export function createRateLimiter(rps: number, burst: number = rps): Limiter {
 export const quoteLimiter = createRateLimiter(4.5, 1);
 
 export interface GetJsonOptions {
+  method?: "GET" | "POST";
+  /** Pre-serialized JSON body; sent with `Content-Type: application/json`. */
+  body?: string;
   headers?: Record<string, string>;
   timeoutMs?: number;
   retries?: number;
@@ -117,13 +120,15 @@ export function unwrapEnvelope(endpoint: string, httpStatus: number, json: unkno
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function getJson(url: string, opts: GetJsonOptions = {}): Promise<unknown> {
-  const { headers = {}, timeoutMs = 8000, retries = 3, limiter = defaultLimiter } = opts;
+  const { headers = {}, timeoutMs = 8000, retries = 3, limiter = defaultLimiter, method = "GET", body } = opts;
   const endpoint = opts.endpoint ?? new URL(url).pathname;
+  const init: RequestInit = { method, headers: body === undefined ? headers : { ...headers, "Content-Type": "application/json" } };
+  if (body !== undefined) init.body = body;
 
   let attempt = 0;
   for (;;) {
     try {
-      return await limiter(() => fetchOnce(url, endpoint, headers, timeoutMs));
+      return await limiter(() => fetchOnce(url, endpoint, init, timeoutMs));
     } catch (err) {
       const apiErr = err instanceof ApiError ? err : toNetworkError(endpoint, err);
       if (!apiErr.retryable || attempt >= retries) throw apiErr;
@@ -136,10 +141,10 @@ export async function getJson(url: string, opts: GetJsonOptions = {}): Promise<u
 async function fetchOnce(
   url: string,
   endpoint: string,
-  headers: Record<string, string>,
+  init: RequestInit,
   timeoutMs: number,
 ): Promise<unknown> {
-  const res = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
+  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   const text = await res.text();
   let json: unknown = null;
   try {

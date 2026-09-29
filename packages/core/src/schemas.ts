@@ -115,3 +115,71 @@ export const QuoteRouteSchema = z.looseObject({
 });
 export const QuoteResponseSchema = z.array(QuoteRouteSchema);
 export type QuoteRoute = z.infer<typeof QuoteRouteSchema>;
+
+/** Integer amounts (wei, gas) kept as exact decimal strings. */
+const intStr = z
+  .union([z.string(), z.number()])
+  .transform(String)
+  .refine((v) => /^\d+$/.test(v), "expected an unsigned integer string");
+const optIntStr = intStr.nullish().transform((v) => v ?? null);
+const hex = z.string().regex(/^0x[0-9a-fA-F]*$/, "expected 0x-prefixed hex");
+
+/** GET /aggregator/approve-transaction: `data` is ERC-20 approve() calldata; `dexContractAddress` is the spender. */
+export const ApproveTxSchema = z.looseObject({
+  data: hex,
+  dexContractAddress: z.string(),
+  gasLimit: optIntStr,
+  gasPrice: optIntStr,
+});
+export const ApproveResponseSchema = z.array(ApproveTxSchema).min(1);
+export type ApproveTx = z.infer<typeof ApproveTxSchema>;
+
+export const SwapTxSchema = z.looseObject({
+  from: z.string(),
+  to: z.string(),
+  data: hex,
+  value: intStr,
+  gas: optIntStr,
+  gasPrice: optIntStr,
+  maxPriorityFeePerGas: optIntStr,
+  minReceiveAmount: optIntStr,
+  slippagePercent: num,
+});
+export type SwapTx = z.infer<typeof SwapTxSchema>;
+
+/** GET /aggregator/swap: `tx` for SWAP routes, `rfq` for RFQ routes (never seen live so far). */
+export const SwapResponseSchema = z.looseObject({
+  executionMode: str,
+  routerResult: z
+    .looseObject({
+      vendorName: str,
+      fromTokenAmount: optIntStr,
+      toTokenAmount: optIntStr,
+      router: str,
+      priceImpactPercent: num,
+      tradeFee: num,
+    })
+    .nullish(),
+  tx: SwapTxSchema.nullish(),
+  rfq: z.unknown().nullish(),
+});
+export type SwapResponse = z.infer<typeof SwapResponseSchema>;
+
+/** POST /pre-transaction/simulate. A revert is `status: "FAILED"` with `failReason`, not an error code. */
+export const SimulateResponseSchema = z.looseObject({
+  status: z.string(),
+  failReason: str,
+  balanceChanges: z
+    .array(
+      z.looseObject({
+        contractAddress: z.string(),
+        tokenType: str,
+        change: z.string().regex(/^-?\d+$/),
+        owner: z.string(),
+      }),
+    )
+    .nullish()
+    .transform((v) => v ?? []),
+  allowanceChanges: z.array(z.unknown()).nullish().transform((v) => v ?? []),
+});
+export type SimulateResult = z.infer<typeof SimulateResponseSchema>;

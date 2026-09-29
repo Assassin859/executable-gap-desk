@@ -100,7 +100,7 @@ export function quotePath(toTokenAddress: string, usd: number, wallet?: string):
   return `${QUOTE_PATH}?${qs}`;
 }
 
-function bestRoute(routes: QuoteRoute[]): QuoteRoute | undefined {
+export function bestRoute(routes: QuoteRoute[]): QuoteRoute | undefined {
   const flagged = routes.find((r) => r.isBest);
   if (flagged) return flagged;
   return [...routes].sort((a, b) => {
