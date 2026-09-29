@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "maxTradeUsd": 25,
+  "quoteMaxAgeSec": 60,
+  "goMaxGapPct": 0.0075,
+  "cautionMaxGapPct": 0.015,
+  "maxDisplayedVsExecutablePct": 0.03,
+  "maxSpreadAtBasePct": 0.02,
+  "impactCautionUsd": 100,
+  "impactCautionPct": 0.01,
+  "maxVenueDisagreementPct": 0.03,
+  "offHoursMaxVerdict": "CAUTION"
+}

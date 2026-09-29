@@ -7,3 +7,4 @@ export * from "./prices";
 export * from "./matrix";
 export * from "./signer";
 export * from "./quotes";
+export * from "./gate";
