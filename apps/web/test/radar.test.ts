@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PublicSnapshot, PublicTicker, PublicVenue } from "@gapdesk/core";
-import { countTraps, filterRows, pickExamples, sortRows, toRadarRow, toRadarRows } from "../lib/radar";
+import { countTraps, filterRows, geoRefused, pickExamples, sortRows, toRadarRow, toRadarRows } from "../lib/radar";
 import { countdown, pct } from "../lib/format";
 
 const venue = (symbol: string, o: Partial<PublicVenue> = {}): PublicVenue => ({
@@ -74,6 +74,14 @@ describe("radar rows", () => {
     expect(mirage).toMatchObject({ symbol: "MSTRx", best: { symbol: "MSTRB" } });
     expect(thinPool).toMatchObject({ symbol: "AAOIB", executableGapPct: 3.89 });
     expect(countTraps(snap)).toBe(1);
+  });
+
+  it("tells a region refusal (40304 on every venue) apart from real venue failures", () => {
+    const refused = { ok: false as const, ts: 0, usd: 25, mode: null, vendor: null, route: [], tokensOut: null, networkFeeUsd: null, reason: "UNKNOWN_ERROR", code: "40304", message: "Service not available due to compliance restriction" };
+    const liquidity = { ...refused, reason: "NO_LIQUIDITY", code: "40374", message: "no liquidity" };
+    expect(geoRefused(ticker("MSTR", [venue("MSTRB", { quote: refused }), venue("MSTRx", { quote: refused })], null))).toBe(true);
+    expect(geoRefused(ticker("MSTR", [venue("MSTRB", { quote: refused }), venue("MSTRx", { quote: liquidity })], null))).toBe(false);
+    expect(geoRefused(snap.tickers[0]!)).toBe(false);
   });
 });
 

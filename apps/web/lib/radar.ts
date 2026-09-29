@@ -120,3 +120,8 @@ export function pickExamples(s: PublicSnapshot): { mirage: Example | null; thinP
 export function countTraps(s: PublicSnapshot): number {
   return s.tickers.flatMap((t) => t.venues).filter((v) => v.verdict === "BLOCK" && v.displayedGapPct !== null && Math.abs(v.displayedGapPct) >= 0.03).length;
 }
+
+/** The quote API answers 40304 to some cloud regions (US); that says nothing about the venue. */
+export function geoRefused(t: PublicTicker): boolean {
+  return t.venues.length > 0 && t.venues.every((v) => v.quote?.ok === false && v.quote.code === "40304");
+}

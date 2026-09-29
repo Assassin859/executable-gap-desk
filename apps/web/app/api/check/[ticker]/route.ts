@@ -1,3 +1,4 @@
+import { geoRefused } from "@/lib/radar";
 import { clientIp, hasCredentials, isCachedCheck, liveCheck, liveThrottle, TICKER_RE } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ ticker: string 
   }
   try {
     const check = await liveCheck(ticker, ladder);
+    if (geoRefused(check.ticker)) {
+      return Response.json({ error: "The Binance quote API refused this server's region (40304), so no live quote. The snapshot cards above still apply." }, { status: 503 });
+    }
     return Response.json(check, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" } });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
