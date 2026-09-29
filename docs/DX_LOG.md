@@ -21,6 +21,12 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 | 13 | 2026-09-29 | `baw` | Medium | Windows: libuv `async.c` assertion crash after error responses |
 | 14 | 2026-09-29 | RWA API | Low | `dividendYield` units differ by platform (percent vs fraction) |
 | 15 | 2026-09-29 | RWA API | Medium | List reports `sharesMultiplier = 1` for every xStock; dynamic has real values |
+| 16 | 2026-09-29 | Trading docs | High | Docs say Ondo is always `RFQ`; every live Ondo and bStocks quote is `SWAP` via LiquidMesh |
+| 17 | 2026-09-29 | Trading API | High | `/quote` returns 88–99.95% price-impact routes with no warning (MSFTon: ~$1B per share) |
+| 18 | 2026-09-29 | Trading docs | Medium | `priceImpactPercent` is a 0–1 fraction, not a percent |
+| 19 | 2026-09-29 | Trading docs | Medium | `tradeFee` is the network fee in USD and `estimateGasFee` is a gas limit; neither is documented |
+| 20 | 2026-09-29 | Trading docs | Medium | No response schema for `/quote`; fields had to be reverse-engineered |
+| 21 | 2026-09-29 | Gateway | Medium | A 5-token burst plus refill trips the 5 RPS endpoint limit (`42900`) |
 
 ---
 
@@ -154,3 +160,56 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 - **Expected:** the same multiplier from both endpoints.
 - **Actual:** the list says `1` for every xStock; dynamic returns the real value (`SPYx` 1.00571, `AAPLx` 1.00327). Using the list value misprices per-share by the accrued amount (0.57% for SPYx); `gap matrix` flags this as `MULTIPLIER_MISMATCH` and always prefers the dynamic value.
 - **Suggested fix:** return the live multiplier in the list, or drop the field there.
+
+## 16. Docs say Ondo always routes via RFQ; live quotes are all SWAP
+
+- **Repro:** signed `GET /build/api/v1/dex/aggregator/quote` from USDT, with `userWalletAddress` set, into every BSC Ondo and bStocks token at $25 (`gap snapshot --all`, 2026-09-29 14:39 UTC, regular session).
+- **Expected:** per the docs (lines 2240–2245), Ondo "Always routed via **3-vendor RFQ** ... All routes return `executionMode=RFQ`", and bStocks return a SWAP route plus a PcsXRfq RFQ route.
+- **Actual:** all 165 successful quotes (109 Ondo, 56 bStocks) returned a single-vendor `executionMode=SWAP` from `vendorName=LiquidMesh`. No RFQ route was returned for any token. "Rfq Halfmoon" shows up only as a hop inside `dexRouterList`. This also means the $20 RFQ minimum in #11 never applied: Ondo quoted fine at $25 and below.
+- **Impact:** a client following the docs builds the EIP-712 `/order/submit` flow and never uses it, and the RFQ-only error codes (`40366`–`40375`) don't cover what actually fails.
+- **Suggested fix:** document when RFQ is offered (size, hours, vendor availability), or fix the routing so the documented behavior holds.
+
+## 17. `/quote` returns near-total-loss routes without a warning
+
+- **Repro:** `gap quote MSFTon --usd 25` and `gap check AAOI` (same sweep as #16).
+- **Expected:** a quote whose output is worth almost nothing is either refused at quote time or flagged, as `/swap` does with `40463` (price impact above the 90% default, line 3063).
+- **Actual:** `/quote` returns `success: true` for them:
+  - MSFTon routes WBNB, then USDC, then a Uniswap V4 pool. It returns 0.0000000244 tokens for $25, about $1,024,618,848 per share, with `priceImpactPercent = 0.9995`.
+  - 17 venues are above 90% impact and 22 are above 50%.
+  - AAOIB displays within 0.2% of the reference but executes at +397%, with impact 0.961. IRENB executes at +732% with impact 0.881, just under the 90% `/swap` guard, so it would go through.
+- **Impact:** the displayed price (`rwa/dynamic`) looks healthy while the executable route is a thin pool. Executable Gap Desk exists to catch exactly this. The gate blocks all of these with `GAP_TOO_WIDE` + `DISPLAY_MISMATCH`.
+- **Suggested fix:** return a `warnings` array on `/quote` (e.g. `HIGH_PRICE_IMPACT`), and apply the same protection threshold at quote time.
+
+## 18. `priceImpactPercent` is a fraction, not a percent
+
+- **Repro:** the quotes in #17. MSFTon returns `0.9995`, which only matches its 99.95% loss if read as a fraction. Ondo venues that pass the gate all return `0.0043` or less.
+- **Expected:** a percent, as the name says, or a documented unit.
+- **Actual:** it is a 0–1 fraction. Reading it as a percent turns a 99.95% loss into "about 1%".
+- **Suggested fix:** document the unit, or rename the field to `priceImpact` / `priceImpactRatio`.
+
+## 19. `tradeFee` and `estimateGasFee` names don't match their contents
+
+- **Repro:** any `/quote` response (fixture `quotes.json`).
+- **Actual:**
+  - `tradeFee` is about `0.02` at every size ($25, $100, $500). That is gas × gas price in USD, i.e. the network fee, not a trading fee.
+  - `estimateGasFee` is `450000`, which is a gas limit in units, not a fee.
+- **Impact:** clients that add `tradeFee` to slippage or show `estimateGasFee` as dollars show wrong costs. We rename them to `networkFeeUsd` and `gasLimit`.
+- **Suggested fix:** document both fields with units, or rename them.
+
+## 20. No response schema for `/quote`
+
+- **Repro:** search the docs for the fields in a live `/quote` response (`toToken.decimal`, `tokenUnitPrice`, `router`, `dexRouterList`, `approveTarget`, `isBest`, `feeAmount`).
+- **Expected:** a field table like the one the request parameters have.
+- **Actual:**
+  - The docs cover the request and the flow but give no response schema. Units and nullability had to be inferred from recorded responses, and #18 and #19 come from that guesswork.
+  - `router` is a `--`-joined string of addresses rather than an array.
+  - Decimals arrive as strings (`"18"`).
+- **Suggested fix:** publish a typed response schema (OpenAPI or a field table) with units.
+
+## 21. The 5 RPS per-endpoint limit trips on a standard token bucket
+
+- **Repro:** a token bucket at 5 requests per second with a burst of 5, firing `/quote` requests back to back (the first `gap snapshot --all` run).
+- **Expected:** a client that averages 5 RPS stays under a "5 RPS, 1 s window" limit (line 401).
+- **Actual:** `42900` on SPYon. A burst of 5 plus refill puts up to 9 requests into one 1-second window. The docs don't say whether the window is fixed or sliding, so a client can't tell which rate is safe.
+- **Workaround:** space requests evenly at 4.5 RPS with no burst, and wait at least 1 s after a 429. The full 271-venue sweep then finished in 73 s with zero `42900`s.
+- **Suggested fix:** state the window type and give a recommended client pacing.
