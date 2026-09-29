@@ -98,18 +98,20 @@ export interface GetJsonOptions {
   endpoint?: string;
 }
 
-const SUCCESS_CODES = new Set<unknown>(["000000", 0, "0"]);
+/** `0`, `"000000"` (public RWA) and `"000000000"` (B402): any all-zero code is success. */
+const isSuccessCode = (code: unknown) => code === 0 || (typeof code === "string" && /^0+$/.test(code));
 
 /**
- * Unwraps both Binance envelopes: public `{code: "000000", data, success}` and keyed
- * `{code: 0, msg, data, success}`. Anything else becomes an ApiError.
+ * Unwraps the Binance envelopes: public `{code: "000000", data, success}`, keyed
+ * `{code: 0, msg, data, success}` and B402 `{status, code: "000000000", errorData, data}`.
+ * Anything else becomes an ApiError.
  */
 export function unwrapEnvelope(endpoint: string, httpStatus: number, json: unknown): unknown {
   if (json === null || typeof json !== "object" || !("data" in json || "code" in json)) {
     return json;
   }
   const env = json as { code?: unknown; success?: unknown; msg?: unknown; message?: unknown; data?: unknown };
-  if (env.success === false || (env.code !== undefined && !SUCCESS_CODES.has(env.code))) {
+  if (env.success === false || (env.code !== undefined && !isSuccessCode(env.code))) {
     const code = typeof env.code === "string" || typeof env.code === "number" ? env.code : null;
     const msg = String(env.msg ?? env.message ?? "Unknown API error");
     throw new ApiError({ endpoint, httpStatus, code, msg, body: json });

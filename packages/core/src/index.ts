@@ -20,3 +20,6 @@ export * from "./positions";
 export * from "./targets";
 export * from "./x402";
 export * from "./research";
+export * from "./b402";
+export * from "./identity";
+export * from "./b402Selftest";

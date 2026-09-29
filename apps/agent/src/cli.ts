@@ -33,6 +33,19 @@ import {
   spentX402TodayUsd,
   submitResearch,
   x402Fetch,
+  AGENT_REGISTRY_ID,
+  b402Config,
+  b402Ready,
+  b402Selftest,
+  createB402Client,
+  DEFAULT_AGENT_URI,
+  defaultIdentityDeps,
+  describeB402Error,
+  IDENTITY_REGISTRY,
+  readIdentityRecord,
+  registerIdentity,
+  showIdentity,
+  type IdentityRecord,
   type ResearchJob,
   type X402Outcome,
   type X402Receipt,
@@ -961,6 +974,119 @@ program
     }
     console.log(t402.toString());
     console.log(pc.dim(`x402 paid today: $${spentX402TodayUsd(paid, Date.now()).toFixed(4)} of $${DEFAULT_POLICY.maxDailyX402Usd}.`));
+  });
+
+const b402Dir = resolvePath(repoRoot, "receipts", "b402");
+const identityPath = resolvePath(repoRoot, "receipts", "identity.json");
+const identityAttemptsDir = resolvePath(repoRoot, "receipts", "identity");
+
+const b402 = program.command("b402").description("Binance B402 facilitator: readiness and a free verify-only self-test");
+
+b402
+  .command("status")
+  .description("Signed /supported call: proves the key, the B402 permission and onboarding; lists what the seller can charge in")
+  .option("--json", "print JSON")
+  .action(async (opts: { json?: boolean }) => {
+    const cfg = b402Config();
+    if (!cfg.creds) throw new Error(`B402 is not configured: missing ${cfg.missing.join(", ")}.`);
+    const started = Date.now();
+    const ready = await b402Ready(createB402Client(cfg.creds)).catch((err: unknown) => {
+      throw new Error(describeB402Error(err));
+    });
+    if (opts.json) {
+      console.log(JSON.stringify({ ...ready, payTo: cfg.payTo, latencyMs: Date.now() - started }, null, 2));
+      return;
+    }
+    console.log(`${pc.green("B402 ready")} ${pc.dim(`${ready.kinds} kinds, ${Date.now() - started} ms`)}`);
+    console.log(`  sells in    ${ready.sellable.length ? ready.sellable.join(", ") : pc.red("nothing (no EIP-3009 U/USD1 kind)")} ${pc.dim("exact / EIP-3009, no buyer approval")}`);
+    console.log(`  payTo       ${cfg.payTo ?? pc.red("unset (B402_PAY_TO)")} ${pc.dim("fixed at onboarding; the self-test checks it")}`);
+    console.log(`  signers     ${ready.signers.join(", ") || pc.dim("none listed")}`);
+    for (const o of ready.offers) console.log(pc.dim(`  offer       ${o}`));
+  });
+
+b402
+  .command("selftest")
+  .description("Sign the desk's own 0.01 U requirement paying the wallet itself, then B402 Verify only (never Settle). Dry run previews only unless --live.")
+  .option("--live", "sign with the Agentic Wallet and call Verify (free; nothing settles)")
+  .option("--yes", "skip the typed confirmation (only with --live)")
+  .option("--json", "print the record JSON")
+  .action(async (opts: { live?: boolean; yes?: boolean; json?: boolean }) => {
+    const live = liveFlag(opts);
+    const { record: r, path } = await b402Selftest({ live, dir: b402Dir, deps: { confirm: (s) => promptConfirm(s, opts.yes === true), log: stepLog } });
+    if (opts.json) console.log(JSON.stringify(r, null, 2));
+    else {
+      const badge =
+        r.outcome === "VALID" ? pc.bgGreen(pc.black(" VALID ")) : r.outcome === "INVALID" ? pc.bgRed(pc.white(pc.bold(" INVALID "))) : r.outcome === "SIMULATED" ? pc.bgCyan(pc.black(" SIMULATED, NOT SIGNED ")) : pc.bgRed(pc.white(pc.bold(` ${r.outcome} `)));
+      console.log(`\n${badge} ${pc.bold("B402 self-test")} ${pc.dim(`(${r.mode}, verify only)`)}`);
+      if (r.refusal) console.log(`  ${pc.red(`${r.refusal.code}: ${r.refusal.message}`)}`);
+      if (r.option) console.log(`  option      ${r.option.amount} ${r.option.token} via ${r.option.method} ${pc.dim(`to ${r.payTo} (itself)`)}`);
+      if (r.proof) console.log(`  proof       ${r.proof.acceptedMatches ? "accepted = requirement" : pc.red("accepted differs")}, strict decode ${r.proof.strictDecode ? "ok" : pc.red("failed")} ${pc.dim(`valid ${r.proof.authorization?.validAfter ?? "?"} to ${r.proof.authorization?.validBefore ?? "?"}`)}`);
+      if (r.verify) console.log(`  verify      ${r.verify.isValid ? pc.green("isValid") : pc.red(`${r.verify.invalidReason ?? "invalid"}${r.verify.invalidMessage ? `: ${r.verify.invalidMessage}` : ""}`)}${r.verify.payer ? pc.dim(`  payer ${r.verify.payer}`) : ""}`);
+      if (path) console.log(pc.dim(`  record      ${relative(repoRoot, path)}`));
+    }
+    if (!["VALID", "SIMULATED"].includes(r.outcome)) process.exitCode = 1;
+  });
+
+const IDENTITY_BADGE: Record<IdentityRecord["outcome"], string> = {
+  REGISTERED: pc.bgGreen(pc.black(" REGISTERED ")),
+  SIMULATED: pc.bgCyan(pc.black(" SIMULATED, NOT SENT ")),
+  REFUSED: pc.bgRed(pc.white(pc.bold(" REFUSED "))),
+  FAILED: pc.bgRed(pc.white(pc.bold(" FAILED "))),
+  PENDING: pc.bgYellow(pc.black(" PENDING ")),
+};
+
+const identity = program.command("identity").description(`ERC-8004 agent identity on BSC (IdentityRegistry ${IDENTITY_REGISTRY})`);
+
+identity
+  .command("register")
+  .description("Register the Agentic Wallet as an ERC-8004 agent pointing at the agent card. Dry run unless --live.")
+  .option("--uri <https>", "agent card URI", DEFAULT_AGENT_URI)
+  .option("--live", "sign and broadcast (default: preview and simulate only)")
+  .option("--yes", "skip the typed confirmation (only with --live)")
+  .option("--json", "print the record JSON")
+  .action(async (opts: { uri: string; live?: boolean; yes?: boolean; json?: boolean }) => {
+    const live = liveFlag(opts);
+    const { record: r, path } = await registerIdentity({
+      uri: opts.uri,
+      live,
+      recordPath: identityPath,
+      attemptsDir: identityAttemptsDir,
+      deps: { ...defaultIdentityDeps(), confirm: (s) => promptConfirm(s, opts.yes === true), log: stepLog },
+    });
+    if (opts.json) console.log(JSON.stringify(r, null, 2));
+    else {
+      console.log(`\n${IDENTITY_BADGE[r.outcome]} ${pc.bold("ERC-8004 identity")} ${pc.dim(`(${r.mode})`)}`);
+      if (r.refusal) console.log(`  ${pc.red(`${r.refusal.code}: ${r.refusal.message}`)}`);
+      console.log(`  agentURI    ${r.agentURI}`);
+      if (r.card) console.log(`  card        ${r.card.name} ${pc.dim(r.card.services.join(", "))}`);
+      if (r.gas) console.log(`  gas         ${r.gas.estimate} at ${Number(r.gas.gasPriceWei) / 1e9} gwei, about ${r.gas.feeBnb.toFixed(8)} BNB ${pc.dim(`(rail: balance >= 5x fee; balance ${(Number(r.gas.balanceWei) / 1e18).toFixed(6)} BNB)`)}`);
+      if (r.tx?.bscscan) console.log(`  tx          ${pc.cyan(r.tx.bscscan)}${r.tx.gasCostBnb !== undefined ? pc.dim(`  gas ${r.tx.gasCostBnb.toFixed(8)} BNB`) : ""}`);
+      if (r.agentId) console.log(`  agentId     ${pc.bold(r.agentId)} ${pc.dim(`at ${AGENT_REGISTRY_ID}`)}`);
+      if (path) console.log(pc.dim(`  record      ${relative(repoRoot, path)}`));
+    }
+    if (!["REGISTERED", "SIMULATED"].includes(r.outcome)) process.exitCode = 1;
+  });
+
+identity
+  .command("show")
+  .description("Read tokenURI and ownerOf, fetch the card and check it links back to the agentId")
+  .argument("[agentId]", "defaults to the agentId in receipts/identity.json")
+  .option("--json", "print JSON")
+  .action(async (id: string | undefined, opts: { json?: boolean }) => {
+    const agentId = id ?? readIdentityRecord(identityPath)?.agentId;
+    if (!agentId || !/^\d+$/.test(agentId)) throw new Error("Give an agentId, or register first (receipts/identity.json has none).");
+    const v = await showIdentity(BigInt(agentId));
+    if (opts.json) {
+      console.log(JSON.stringify(v, null, 2));
+      return;
+    }
+    console.log(`${pc.bold(`ERC-8004 agent ${v.agentId}`)} ${pc.dim(AGENT_REGISTRY_ID)}`);
+    console.log(`  owner       ${v.owner}`);
+    console.log(`  agentURI    ${v.agentURI}`);
+    if (v.card) console.log(`  card        ${v.card.name} ${pc.dim(v.card.services.map((s) => s.name).join(", "))}`);
+    console.log(`  back-link   ${v.pointsBack ? pc.green("the card lists this agentId") : pc.red("missing")}`);
+    for (const i of v.issues) console.log(`  ${pc.yellow(i)}`);
+    if (v.issues.length) process.exitCode = 1;
   });
 
 program

@@ -7,6 +7,9 @@ coverage/
 receipts/*
 !receipts/exec/
 !receipts/x402/
+!receipts/b402/
+!receipts/identity/
+!receipts/identity.json
 *.log
 .DS_Store
 .vercel/

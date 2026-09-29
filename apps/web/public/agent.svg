@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0b0e11"/>
+  <path d="M96 336 L176 256 L240 300 L336 188 L416 224" fill="none" stroke="#3a3f47" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 36"/>
+  <path d="M96 352 L176 288 L240 320 L336 232 L416 256" fill="none" stroke="#f0b90b" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="256" y="148" text-anchor="middle" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="64" font-weight="700" fill="#eaecef">GAP DESK</text>
+  <text x="256" y="440" text-anchor="middle" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="30" fill="#848e9c">executable, not displayed</text>
+</svg>

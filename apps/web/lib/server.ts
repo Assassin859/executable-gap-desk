@@ -37,10 +37,10 @@ const checks = createTtlCache<LiveCheck>(60_000);
 const sessions = createTtlCache<PublicSession | null>(30_000);
 export const liveThrottle = createThrottle(12, 60_000);
 
-export function liveCheck(ticker: string, ladder: boolean): Promise<LiveCheck> {
+export function liveCheck(ticker: string, ladder: boolean, usd = 25): Promise<LiveCheck> {
   loadLocalEnv();
-  return checks.get(`${ticker}:${ladder}`, async () => {
-    const r = await checkTicker(ticker, { usd: 25, ladderSizes: ladder ? [100, 500] : [] });
+  return checks.get(usd === 25 ? `${ticker}:${ladder}` : `${ticker}:${ladder}:${usd}`, async () => {
+    const r = await checkTicker(ticker, { usd, ladderSizes: ladder ? [100, 500] : [] });
     return { checkedAt: Date.now(), ladder, session: toPublicSession(r.marketSession), ticker: toPublicTicker(r) };
   });
 }

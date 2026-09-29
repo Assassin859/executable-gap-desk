@@ -85,7 +85,11 @@ export type RefusalCode =
   | "UNEXPECTED_APPROVAL"
   | "PAYMENT_REJECTED"
   | "PAID_BUT_ERROR"
-  | "REPLAY_UNKNOWN";
+  | "REPLAY_UNKNOWN"
+  | "ALREADY_REGISTERED"
+  | "BAD_AGENT_URI"
+  | "BAD_AGENT_CARD"
+  | "NO_REGISTERED_EVENT";
 
 /** A rail stopped the run. Before anything is broadcast this is a REFUSED receipt; after, FAILED. */
 export class Refusal extends Error {
