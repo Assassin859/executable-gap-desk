@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-20-25-141Z-fund-BNBUSDT",
+  "kind": "funding",
+  "createdAt": "2026-09-29T15:20:25.141Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "BNB-USDT",
+  "venue": null,
+  "usd": 2.51,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": null,
+  "quote": {
+    "tokensOut": 2.5048351222411696,
+    "fillPerShare": 0,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "BNB",
+      "USDT"
+    ],
+    "vendorPriceImpact": 0.005958839,
+    "networkFeeUsd": 0.01760889,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "0",
+    "bnb": "4519200000000000",
+    "allowance": "0"
+  },
+  "approval": null,
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "3300000000000000",
+    "minReceiveAmount": "2492310946629963741",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "53682790",
+    "worstCaseGapPct": null
+  },
+  "simulation": {
+    "source": "binance-transaction-api",
+    "status": "SUCCESS",
+    "failReason": null,
+    "tokenDelta": "2504835122241169589"
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:20:25.870Z",
+      "step": "quote",
+      "detail": "0.0033 BNB to USDT"
+    },
+    {
+      "at": "2026-09-29T15:20:26.790Z",
+      "step": "simulated",
+      "detail": "2.5048 USDT"
+    },
+    {
+      "at": "2026-09-29T15:20:26.790Z",
+      "step": "dry run: not broadcast",
+      "detail": "pass --live to sign with the Agentic Wallet"
+    }
+  ]
+}

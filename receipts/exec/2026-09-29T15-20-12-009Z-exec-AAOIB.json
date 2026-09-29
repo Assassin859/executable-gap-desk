@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-20-12-009Z-exec-AAOIB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:20:12.009Z",
+  "mode": "dry-run",
+  "outcome": "REFUSED",
+  "refusal": {
+    "code": "GATE_NOT_GO",
+    "message": "Gate verdict is BLOCK, and only GO executes. Fill is +389.11% off the stock ($500.97 per share vs the stock at $102.43); the limit is ±1.50%. Displayed gap -0.49% vs executable +389.11%: the displayed price is not what you would get. At $1.00 you pay +391.53% over the venue's displayed price (limit 2.00%)."
+  },
+  "symbol": "AAOIB",
+  "venue": {
+    "ticker": "AAOI",
+    "platform": "bstocks",
+    "address": "0x10343ef7da3301493d7ecb647d68a288c6c1db2f"
+  },
+  "usd": 1,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "BLOCK",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_TOO_WIDE",
+        "severity": "block",
+        "message": "Fill is +389.11% off the stock ($500.97 per share vs the stock at $102.43); the limit is ±1.50%."
+      },
+      {
+        "code": "DISPLAY_MISMATCH",
+        "severity": "block",
+        "message": "Displayed gap -0.49% vs executable +389.11%: the displayed price is not what you would get."
+      },
+      {
+        "code": "SPREAD_AT_BASE",
+        "severity": "block",
+        "message": "At $1.00 you pay +391.53% over the venue's displayed price (limit 2.00%)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 102.425,
+    "displayedGapPct": -0.004930436905052433,
+    "executableGapPct": 3.8910885636511447,
+    "fillPerShare": 500.9697461319685,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.001996128524169549,
+    "fillPerShare": 500.9697461319685,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "AAOIB"
+    ],
+    "vendorPriceImpact": 0.9600807052,
+    "networkFeeUsd": 0.01811799,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": null,
+  "approval": null,
+  "swap": null,
+  "simulation": null,
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:20:12.011Z",
+      "step": "gate",
+      "detail": "AAOIB at $1"
+    },
+    {
+      "at": "2026-09-29T15:20:12.773Z",
+      "step": "refused",
+      "detail": "GATE_NOT_GO: Gate verdict is BLOCK, and only GO executes. Fill is +389.11% off the stock ($500.97 per share vs the stock at $102.43); the limit is ±1.50%. Displayed gap -0.49% vs executable +389.11%: the displayed price is not what you would get. At $1.00 you pay +391.53% over the venue's displayed price (limit 2.00%)."
+    }
+  ]
+}

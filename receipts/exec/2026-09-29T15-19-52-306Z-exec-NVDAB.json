@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-19-52-306Z-exec-NVDAB",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:19:52.306Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "NVDAB",
+  "venue": {
+    "ticker": "NVDA",
+    "platform": "bstocks",
+    "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"
+  },
+  "usd": 1.5,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "GO",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "GAP_OK",
+        "severity": "info",
+        "message": "Fill is -0.06% off the stock ($230.28 per share vs the stock at $230.42)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 230.416667,
+    "displayedGapPct": -0.0005931298363931292,
+    "executableGapPct": -0.0005823700892800427,
+    "fillPerShare": 230.2824792250676,
+    "quoteAgeSec": 0
+  },
+  "quote": {
+    "tokensOut": 0.00650867394322164,
+    "fillPerShare": 230.2824792250676,
+    "vendorName": "LiquidMesh",
+    "executionMode": "SWAP",
+    "route": [
+      "USDT",
+      "NVDAB"
+    ],
+    "vendorPriceImpact": 0,
+    "networkFeeUsd": 0.02120246,
+    "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+  },
+  "balances": {
+    "usdt": "0",
+    "bnb": "4519200000000000",
+    "allowance": "0"
+  },
+  "approval": {
+    "needed": true,
+    "amount": "1500000000000000000",
+    "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "allowanceBefore": "0",
+    "to": "0x55d398326f99059fF775485246999027B3197955",
+    "value": "0"
+  },
+  "swap": {
+    "to": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "value": "0",
+    "minReceiveAmount": "6476130573505531",
+    "slippagePct": 0.5,
+    "gas": "450000",
+    "gasPrice": "62531153",
+    "worstCaseGapPct": 0.004439829056000155
+  },
+  "simulation": {
+    "source": "eth_call-state-override",
+    "status": "SUCCESS",
+    "failReason": null,
+    "tokenDelta": null,
+    "apiStatus": "FAILED",
+    "apiFailReason": "execution reverted: BEP20: transfer amount exceeds balance",
+    "overrides": {
+      "token": "0x55d398326f99059fF775485246999027B3197955",
+      "balance": "1500000000000000000",
+      "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+      "allowance": "1500000000000000000"
+    }
+  },
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:19:52.307Z",
+      "step": "gate",
+      "detail": "NVDAB at $1.5"
+    },
+    {
+      "at": "2026-09-29T15:19:53.841Z",
+      "step": "gate passed",
+      "detail": "GO, fill -0.06% vs the stock"
+    },
+    {
+      "at": "2026-09-29T15:19:54.767Z",
+      "step": "approval checked",
+      "detail": "exact 1.5 USDT to 0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+    },
+    {
+      "at": "2026-09-29T15:19:54.767Z",
+      "step": "re-quote"
+    },
+    {
+      "at": "2026-09-29T15:19:55.221Z",
+      "step": "swap built",
+      "detail": "min receive 0.00647613 NVDAB"
+    },
+    {
+      "at": "2026-09-29T15:19:55.785Z",
+      "step": "simulated",
+      "detail": "eth_call-state-override"
+    },
+    {
+      "at": "2026-09-29T15:19:55.785Z",
+      "step": "dry run: not broadcast",
+      "detail": "pass --live to sign with the Agentic Wallet"
+    }
+  ]
+}

@@ -4,7 +4,8 @@ coverage/
 .env
 .env.local
 .env.*.local
-receipts/
+receipts/*
+!receipts/exec/
 *.log
 .DS_Store
 .vercel/

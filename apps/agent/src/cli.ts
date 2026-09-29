@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, writeFileSync } from "node:fs";
-import { dirname, resolve as resolvePath } from "node:path";
+import { dirname, relative, resolve as resolvePath } from "node:path";
+import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import Table from "cli-table3";
@@ -16,14 +17,21 @@ import {
   QUOTE_REASON_TEXT,
   buildMatrix,
   credentialsFromEnv,
+  defaultExecDeps,
+  executeTrade,
+  fundUsdt,
   getAssetStatus,
   getLadder,
   getMarketSession,
+  listReceipts,
   loadRegistry,
   resolve,
   signedGet,
   sortByGap,
+  spentTodayUsd,
   type ExecQuote,
+  type ExecReceipt,
+  type Outcome,
   type MatrixFlag,
   type Platform,
   type TickerCheck,
@@ -408,6 +416,147 @@ program
         pc.dim(`| ${snap.session ? SESSION_TEXT[snap.session.session] : "session unavailable"} | ${(snap.elapsedMs / 1000).toFixed(1)}s`),
     );
     if (opts.out) console.log(pc.dim(`wrote ${opts.out}`));
+  });
+
+const receiptsDir = resolvePath(repoRoot, "receipts", "exec");
+
+const OUTCOME_BADGE: Record<Outcome, string> = {
+  FILLED: pc.bgGreen(pc.black(" FILLED ")),
+  SIMULATED: pc.bgCyan(pc.black(" SIMULATED, NOT BROADCAST ")),
+  REFUSED: pc.bgRed(pc.white(pc.bold(" REFUSED "))),
+  FAILED: pc.bgRed(pc.white(pc.bold(" FAILED "))),
+  PENDING: pc.bgYellow(pc.black(" PENDING ")),
+};
+
+async function promptConfirm(summary: string, yes: boolean): Promise<boolean> {
+  console.log(`\n${pc.bold(summary)}`);
+  if (yes) {
+    console.log(pc.dim("--yes given: confirmed."));
+    return true;
+  }
+  if (!process.stdin.isTTY) {
+    console.log(pc.yellow("No terminal to confirm in; re-run with --yes to broadcast."));
+    return false;
+  }
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const answer = await rl.question(`${pc.yellow("Type yes to sign and broadcast with the Agentic Wallet:")} `);
+  rl.close();
+  return answer.trim().toLowerCase() === "yes";
+}
+
+const stepLog = (step: string, detail?: string) => process.stderr.write(`${pc.dim("·")} ${step}${detail ? pc.dim(`  ${detail}`) : ""}\n`);
+
+function printReceipt(r: ExecReceipt, path: string | null) {
+  console.log();
+  console.log(`${OUTCOME_BADGE[r.outcome]} ${pc.bold(r.kind === "funding" ? "BNB -> USDT funding" : `${r.symbol}  $${r.usd}`)} ${pc.dim(`(${r.mode})`)}`);
+  if (r.refusal) console.log(`  ${pc.red(`${r.refusal.code}: ${r.refusal.message}`)}`);
+  if (r.gate) {
+    console.log(`  gate        ${verdictBadge(r.gate.verdict)} ${r.gate.session ? SESSION_TEXT[r.gate.session] : ""}  ${pc.dim(`stock ${usd(r.gate.reference)}, displayed ${pct(r.gate.displayedGapPct)}, executable ${pct(r.gate.executableGapPct)}`)}`);
+    r.gate.reasons
+      .filter((x) => x.severity !== "info")
+      .forEach((x, i) => console.log(`              ${i + 1}. ${(x.severity === "block" ? pc.red : pc.yellow)(x.message)}`));
+  }
+  if (r.quote && r.kind === "trade") {
+    console.log(`  quote       ${r.quote.tokensOut.toPrecision(6)} tokens at ${usd(r.quote.fillPerShare)}/share  ${pc.dim(`${r.quote.executionMode} / ${r.quote.vendorName}, ${r.quote.route.join(" > ")}`)}`);
+  }
+  if (r.approval) {
+    const a = r.approval;
+    console.log(`  approval    ${a.needed ? `exact ${Number(a.amount) / 1e18} USDT to ${a.spender}` : pc.dim("not needed (allowance covers the trade)")}${a.txHash ? `  ${pc.cyan(a.bscscan ?? a.txHash)}` : ""}`);
+  }
+  if (r.swap) {
+    const worst = r.swap.worstCaseGapPct === null ? "" : pc.dim(`, worst case at ${r.swap.slippagePct}% slippage ${pct(r.swap.worstCaseGapPct)} vs the stock`);
+    console.log(`  swap        to ${r.swap.to}${worst}`);
+  }
+  if (r.simulation) {
+    const s = r.simulation;
+    const label = s.source === "eth_call-state-override" ? "BSC eth_call with funded/approved state override" : "Binance Transaction API";
+    console.log(`  simulation  ${s.status === "SUCCESS" ? pc.green(s.status) : pc.red(s.status)} ${pc.dim(`(${label})`)}${s.failReason ? `  ${pc.red(s.failReason)}` : ""}`);
+    if (s.apiFailReason) console.log(pc.dim(`              Transaction API on the real wallet: ${s.apiStatus} (${s.apiFailReason})`));
+  }
+  if (r.swap?.txHash) console.log(`  tx          ${pc.cyan(r.swap.bscscan ?? r.swap.txHash)}  ${pc.dim(`gas ${r.swap.gasCostBnb?.toFixed(8) ?? "?"} BNB`)}`);
+  if (r.fill && r.kind === "trade") {
+    const f = r.fill;
+    console.log(`  fill        ${f.tokensOut.toPrecision(6)} ${r.symbol} for ${f.usdSpent.toFixed(4)} USDT = ${usd(f.fillPerShare)}/share  quoted ${usd(f.quotedFillPerShare)}  realized vs quoted ${pct(f.realizedVsQuotedPct)}  vs stock ${pct(f.realizedGapPct)}`);
+  }
+  if (r.fill && r.kind === "funding") console.log(`  received    ${r.fill.tokensOut.toFixed(4)} USDT`);
+  if (path) console.log(pc.dim(`  receipt     ${relative(repoRoot, path)}`));
+}
+
+program
+  .command("exec")
+  .description("Buy a venue token with USDT, only on a fresh GO verdict. Dry run unless --live.")
+  .argument("<symbol>", "venue symbol, e.g. NVDAB (not a ticker)")
+  .requiredOption("--usd <amount>", "USDT to spend")
+  .option("--live", "sign and broadcast with the Agentic Wallet (default: dry run)")
+  .option("--simulate-only", "explicit dry run; cannot be combined with --live")
+  .option("--yes", "skip the typed confirmation (only with --live)")
+  .option("--json", "print the receipt JSON")
+  .action(async (symbol: string, opts: { usd: string; live?: boolean; simulateOnly?: boolean; yes?: boolean; json?: boolean }) => {
+    if (opts.live && opts.simulateOnly) throw new Error("--live and --simulate-only cannot be combined.");
+    if (opts.yes && !opts.live) throw new Error("--yes only applies with --live.");
+    const live = opts.live === true && process.env.DRY_RUN !== "1";
+    if (opts.live && !live) console.error(pc.yellow("DRY_RUN=1 is set; running as a dry run."));
+    const { receipt, path } = await executeTrade(symbol, {
+      usd: Number(opts.usd),
+      live,
+      receiptsDir,
+      deps: { ...defaultExecDeps(), confirm: (s) => promptConfirm(s, opts.yes === true), log: stepLog },
+    });
+    if (opts.json) console.log(JSON.stringify(receipt, null, 2));
+    else printReceipt(receipt, path);
+    if (receipt.outcome !== "FILLED" && receipt.outcome !== "SIMULATED") process.exitCode = 1;
+  });
+
+program
+  .command("fund")
+  .description("One-off: convert native BNB to USDT through the same simulate + Agentic Wallet path (not gated)")
+  .requiredOption("--bnb <amount>", "BNB to convert; at least 0.001 BNB is always kept for gas")
+  .option("--live", "sign and broadcast (default: dry run)")
+  .option("--yes", "skip the typed confirmation (only with --live)")
+  .option("--json", "print the receipt JSON")
+  .action(async (opts: { bnb: string; live?: boolean; yes?: boolean; json?: boolean }) => {
+    if (opts.yes && !opts.live) throw new Error("--yes only applies with --live.");
+    const live = opts.live === true && process.env.DRY_RUN !== "1";
+    const { receipt, path } = await fundUsdt({
+      bnb: Number(opts.bnb),
+      live,
+      receiptsDir,
+      deps: { ...defaultExecDeps(), confirm: (s) => promptConfirm(s, opts.yes === true), log: stepLog },
+    });
+    if (opts.json) console.log(JSON.stringify(receipt, null, 2));
+    else printReceipt(receipt, path);
+    if (receipt.outcome !== "FILLED" && receipt.outcome !== "SIMULATED") process.exitCode = 1;
+  });
+
+program
+  .command("receipts")
+  .description("List execution receipts (live fills, simulations and refusals)")
+  .option("--json", "print JSON")
+  .action((opts: { json?: boolean }) => {
+    const all = listReceipts(receiptsDir);
+    if (opts.json) {
+      console.log(JSON.stringify(all, null, 2));
+      return;
+    }
+    if (!all.length) {
+      console.log(pc.dim(`No receipts yet in ${relative(repoRoot, receiptsDir)}.`));
+      return;
+    }
+    const table = new Table({ head: ["Time (UTC)", "What", "Mode", "Outcome", "Gate", "Fill/share", "vs quote", "Tx or reason"] });
+    for (const r of all) {
+      table.push([
+        r.createdAt.slice(0, 19).replace("T", " "),
+        r.kind === "funding" ? `fund $${r.usd} USDT` : `${r.symbol} $${r.usd}`,
+        r.mode,
+        OUTCOME_BADGE[r.outcome],
+        r.gate ? VERDICT_SHORT[r.gate.verdict](r.gate.verdict) : pc.dim("-"),
+        r.fill?.fillPerShare ? usd(r.fill.fillPerShare) : pc.dim("-"),
+        r.fill?.realizedVsQuotedPct !== undefined && r.fill?.realizedVsQuotedPct !== null ? pct(r.fill.realizedVsQuotedPct) : pc.dim("-"),
+        r.swap?.txHash ? pc.cyan(r.swap.txHash.slice(0, 18) + "…") : r.refusal ? pc.red(r.refusal.code) : pc.dim("-"),
+      ]);
+    }
+    console.log(table.toString());
+    console.log(pc.dim(`Live USDT spent on fills today: $${spentTodayUsd(all, Date.now()).toFixed(2)} of $${DEFAULT_POLICY.maxDailySpendUsd}.`));
   });
 
 program

@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "2026-09-29T15-20-08-129Z-exec-MSTRx",
+  "kind": "trade",
+  "createdAt": "2026-09-29T15:20:08.129Z",
+  "mode": "dry-run",
+  "outcome": "REFUSED",
+  "refusal": {
+    "code": "GATE_NOT_GO",
+    "message": "Gate verdict is BLOCK, and only GO executes. Quote failed: no liquidity from any vendor (40374)."
+  },
+  "symbol": "MSTRx",
+  "venue": {
+    "ticker": "MSTR",
+    "platform": "xstocks",
+    "address": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e"
+  },
+  "usd": 1,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": {
+    "verdict": "BLOCK",
+    "session": "regular",
+    "reasons": [
+      {
+        "code": "QUOTE_ERROR",
+        "severity": "block",
+        "message": "Quote failed: no liquidity from any vendor (40374)."
+      },
+      {
+        "code": "STATUS_MISSING",
+        "severity": "info",
+        "message": "This venue publishes no session status; the US market session is used instead."
+      }
+    ],
+    "reference": 153.778,
+    "displayedGapPct": -0.09703342645944868,
+    "executableGapPct": null,
+    "fillPerShare": null,
+    "quoteAgeSec": 0
+  },
+  "quote": null,
+  "balances": null,
+  "approval": null,
+  "swap": null,
+  "simulation": null,
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T15:20:08.130Z",
+      "step": "gate",
+      "detail": "MSTRx at $1"
+    },
+    {
+      "at": "2026-09-29T15:20:09.661Z",
+      "step": "refused",
+      "detail": "GATE_NOT_GO: Gate verdict is BLOCK, and only GO executes. Quote failed: no liquidity from any vendor (40374)."
+    }
+  ]
+}
