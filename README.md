@@ -8,6 +8,8 @@ Executable Gap Desk shows the displayed gap next to the executable one, gates ev
 
 Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 
+**Live desk: [executable-gap-desk.vercel.app](https://executable-gap-desk.vercel.app)**. Open any stock for live gated quotes.
+
 ## Status
 
 | Part | What | State |
@@ -15,8 +17,8 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 | 1 | Data truth: registry, session, per-share prices, displayed-gap matrix, CLI | done |
 | 2 | Executable quotes and the GO / CAUTION / BLOCK gate | done |
 | 3 | Guarded mainnet fills via `baw` with receipts | done |
-| 4 | Web desk | next |
-| 5 | Agentic Wallet and BNB Agent Studio integrations | planned |
+| 4 | Web desk: radar, Truth Cards, proof ledger, DX log | done |
+| 5 | Agentic Wallet and BNB Agent Studio integrations | next |
 | 6 | Ship: polish, demo, DX report | planned |
 
 ## Quickstart
@@ -39,7 +41,7 @@ pnpm gap ping                    # checks signing against the keyed API
 pnpm gap check NVDA              # Truth Card: displayed vs executable per venue, verdict, best venue
 pnpm gap check NVDA --ladder     # adds $100 and $500 quotes to measure price impact
 pnpm gap quote AAPLon --usd 25 100 500
-pnpm gap snapshot --all          # $25 sweep of every BSC tokenized stock (~75 s, rate-limited)
+pnpm gap snapshot --all          # $25 sweep of every BSC tokenized stock (~3 min, rate-limited)
 ```
 
 Example (2026-09-29, US regular session):
@@ -73,15 +75,15 @@ The opposite trap is worse, because the displayed price looks fine. AAOIB displa
 
 ### Full sweep
 
-`gap snapshot --all` (2026-09-29 14:39 UTC, regular session, $25 per venue) covered 117 tickers and 271 venues in 73 s:
+The sweep behind the web radar (2026-09-29 15:57 UTC, regular session, $25 per venue) covered every BSC tokenized stock: 512 tickers and 666 venues (458 Ondo, 128 xStocks, 80 bStocks) in 173 s:
 
 | Verdict | Venues | Main reasons |
 |---------|--------|--------------|
-| GO | 134 | fill within 0.75% of the stock |
-| CAUTION | 4 | fill 0.75–1.5% off |
-| BLOCK | 133 | 106 quote with no liquidity (all 86 xStocks, 12 bStocks, 8 Ondo); about 25 thin-pool routes at +100% to +800% |
+| GO | 454 | fill within 0.75% of the stock (423 Ondo, 31 bStocks) |
+| CAUTION | 14 | fill 0.75–1.5% off |
+| BLOCK | 198 | 165 quotes with no liquidity (`40374`: all 128 xStocks, 23 Ondo, 14 bStocks); 33 routes that fill but fail the gate, 21 of them at +100% or worse through thin pools |
 
-113 of the 117 tickers have at least one safe venue. Every successful quote came back as `SWAP` via LiquidMesh; see [DX log #16](docs/DX_LOG.md#16-docs-say-ondo-always-routes-via-rfq-live-quotes-are-all-swap).
+442 of the 512 tickers have at least one safe venue; 117 are listed on two or more platforms. Not one xStock can be bought with a $25 aggregator order, whatever its displayed price. Every successful quote came back as `SWAP` via LiquidMesh; see [DX log #16](docs/DX_LOG.md#16-docs-say-ondo-always-routes-via-rfq-live-quotes-are-all-swap).
 
 ### Gate policy
 
@@ -123,6 +125,25 @@ Every run writes a JSON receipt to [`receipts/exec/`](receipts/exec/), including
 7. **Wallet preview:** `baw contract-call preview` must pass its own simulation with no risk flags, and then you confirm.
 8. **After broadcast:** wait for the receipt (a revert is recorded as `TX_REVERTED`), then read the real fill from the `Transfer` logs and compare it with the quote.
 
+### Web desk
+
+[executable-gap-desk.vercel.app](https://executable-gap-desk.vercel.app) is the same core in a browser:
+
+- **Radar** (`/`): every BSC tokenized stock from the full sweep, with the displayed gap next to the executable one and the verdict. Two example cards show the traps (a displayed discount with no liquidity, and a normal-looking price that fills hundreds of percent high). Search, sort, a "listed on 2+ platforms" filter and a hide-BLOCK toggle (off by default, so the traps stay visible). A badge shows the live US session and the countdown to the next open or close.
+- **Truth Card** (`/t/NVDA`): the snapshot row for each venue, then fresh $25 quotes through the gate with plain-English reasons and the best venue. "Add $100 / $500" measures price impact.
+- **Proof** (`/proof`): the mainnet fills and refusals above, built from [`receipts/exec/`](receipts/exec/) with BscScan links.
+- **DX log** (`/dx`): the entries of [`docs/DX_LOG.md`](docs/DX_LOG.md), highest severity first.
+
+The radar reads a committed snapshot ([`apps/web/data/snapshot.json`](apps/web/data/snapshot.json), about 520 KB). Live Truth Card quotes use the keyed API from the server, with the key held in Vercel environment variables, cached for 60 s and limited to 12 live checks per minute per visitor. The functions run in Mumbai (`bom1`) because the quote API refuses US regions with `40304` ([DX #29](docs/DX_LOG.md#29-quote-answers-40304-to-us-cloud-regions-and-the-docs-dont-list-it-for-trading)).
+
+```bash
+pnpm web:dev                     # http://localhost:3000, uses .env.local for live quotes
+pnpm web:snapshot                # re-sweep every venue (~3 min) into apps/web/data/snapshot.json
+pnpm web:build                   # production build (518 static pages)
+```
+
+**Execution never runs on the public site.** With `EXECUTE_MODE=local` set on your machine (`$env:EXECUTE_MODE="local"; pnpm web:dev` in PowerShell), each Truth Card gets an execute panel that runs the same `gap exec` pipeline: dry run by default, then a typed `yes` before anything is signed. `/api/exec` returns 404 unless `EXECUTE_MODE=local` is set and the app is not on Vercel, refuses any request not addressed to localhost or forwarded from another IP, and still goes through the kill switch, `DRY_RUN`, the size caps and every rail above.
+
 ## How it works
 
 ```mermaid
@@ -144,6 +165,8 @@ flowchart LR
   baw --> bsc[BSC mainnet]
   bsc --> exec
   exec --> receipts[receipts/exec]
+  gate --> web[Web desk]
+  receipts --> web
 ```
 
 - **Registry** (`packages/core/src/registry.ts`): BSC venues from the public RWA list, platform by `type` (1 Ondo, 2 xStocks, 3 bStocks), grouped by ticker.
@@ -158,13 +181,17 @@ flowchart LR
 - **Chain** (`chain.ts`): viem reads on BSC (balances, allowance, receipts, `Transfer` logs), approve-calldata decoding, and the state-override `eth_call` used for unfunded dry runs.
 - **Wallet** (`baw.ts`): runs `baw contract-call preview/execute` without a shell and parses its JSON (including after its Windows exit crash, DX #13).
 - **Executor** (`execute.ts`): the rails above, `PENDING_CONFIRMATION` polling, and receipts.
+- **Public snapshot** (`publicSnapshot.ts`): the slim, JSON-safe shape the web desk ships (no quote ids, routers or raw API bodies).
+- **Web desk** (`apps/web`): Next.js App Router pages over the public snapshot, live checks through `checkTicker`, and the localhost-only execute route.
 
 ```text
 packages/core/     data layer (config, http, schemas, registry, session, prices, matrix, signer, quotes, gate, snapshot)
                    + execution (trade, chain, baw, execute) + tests
 packages/core/policy/  gate policy (JSON, zod-validated)
 apps/agent/        gap CLI
-scripts/           fixture recorder
+apps/web/          web desk (Next.js): radar, Truth Cards, proof, DX log, local execute panel
+apps/web/data/     committed public snapshot behind the radar
+scripts/           fixture recorder, web snapshot builder
 receipts/exec/     one JSON receipt per gap exec / gap fund run (fills and refusals)
 docs/DX_LOG.md     developer-experience findings
 docs/vendor/       snapshot of the Binance Web3 llms-full.txt docs
@@ -198,7 +225,7 @@ Both stock fills landed within 0.02% of the quote and 0.11% of the stock. Networ
 
 ## Developer experience
 
-We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (28 entries so far; #22–#28 come from the live fills).
+We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (29 entries so far; #22–#28 come from the live fills, #29 from deploying the web desk). The [DX page](https://executable-gap-desk.vercel.app/dx) lists them by severity.
 
 _The full DX report will be summarized here in Part 6._
 

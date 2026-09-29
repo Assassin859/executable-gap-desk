@@ -34,6 +34,7 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 | 26 | 2026-09-29 | Transaction API | Medium | `/simulate` reverts are HTTP 200 `status: FAILED`; no response schema |
 | 27 | 2026-09-29 | Trading docs | Low | `/swap` response is undocumented (`gas` vs `gasLimit`, duplicate fee fields, which contract to approve) |
 | 28 | 2026-09-29 | `baw` | Medium | `contract-call preview` returns token amounts as JSON numbers and loses precision |
+| 29 | 2026-09-29 | Trading API | Medium | `/quote` answers `40304` to US cloud regions; the docs don't list it for trading |
 
 ---
 
@@ -279,3 +280,10 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 - **Expected:** 18-decimal token amounts as strings, like every Binance Web3 API response.
 - **Actual:** any amount above 2^53 (about 0.009 of an 18-decimal token) is rounded before it reaches the client, so no JSON parser can recover it. The error is tiny, but a client comparing the preview with a minimum in base units can mismatch. Our executor checks amounts against `/simulate` and uses the preview only for its pass/fail and risk flags.
 - **Suggested fix:** return amounts as decimal strings in the `--json` output.
+
+## 29. `/quote` answers 40304 to US cloud regions, and the docs don't list it for trading
+
+- **Repro:** deploy the web desk to Vercel with default settings (functions in `iad1`, Washington DC) and open `/api/check/MSTR`. Every venue's signed `GET /build/api/v1/dex/aggregator/quote` returns `40304 Service not available due to compliance restriction`. The same key, code and request from India (`bom1`, or a laptop) returns normal quotes.
+- **Expected:** the trading docs to say which regions the aggregator refuses, and a specific code for "region not supported for tokenized stocks", like `40301`.
+- **Actual:** `40304` is only listed under the DeFi endpoints (docs line 4305) as a catch-all "compliance rule not covered by a more specific code". Nothing in the trading or RWA sections says it can hit `/quote`, or that it depends on the server's region. A client that maps errors per venue shows every venue as untradeable, which is wrong: the venues are fine, the caller's region isn't. We pinned the functions to `bom1` and made the web desk report a region refusal as its own error, not as three BLOCKs.
+- **Suggested fix:** list the IP compliance codes for the trading endpoints, name the affected regions for tokenized stocks, and use `40301` (region) for region blocks so clients can tell them apart from account or address compliance.
