@@ -1,0 +1,8 @@
+﻿bag dev: starting Agent in-process (`tsx src/dualMain.ts` on :9000, no Docker â€” the entrypoint self-serves; cwd=C:\Users\maitr\Downloads\new\apps\studio\app\agent, runner=C:\Users\maitr\Downloads\new\apps\studio\app\agent\node_modules\.bin\tsx.cmd)
+bag dev: network=bsc-mainnet (chainId=56)
+bag dev: MCP server at http://localhost:9000/mcp (negotiate / notify_funded + read-only chain tools)
+bag dev: connect an MCP client, e.g. `npx @modelcontextprotocol/inspector` â†’ http://localhost:9000/mcp
+bag dev: A2A agent card at http://localhost:9000/.well-known/agent-card.json (send the negotiate/notify_funded skills via A2A message/send)
+bag dev: test with curl / an A2A client sending a {"skill":...} DataPart â€” NOT the :8081 chat box (it can't build a seller's structured skills).
+bag dev: x402 seller at http://localhost:9000/x402 (PAID â€” active when B402 credentials are configured)
+[seller-agent] A2A native + MCP tunneled serving on 127.0.0.1:9000

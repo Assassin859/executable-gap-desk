@@ -10,6 +10,11 @@ receipts/*
 !receipts/b402/
 !receipts/identity/
 !receipts/identity.json
+!receipts/mcp/
+!receipts/studio/
+!receipts/x402-sales/
+apps/studio/.studio/
+apps/studio/agentcore/.env.local
 *.log
 .DS_Store
 .vercel/

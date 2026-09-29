@@ -1,0 +1,165 @@
+{
+  "at": "2026-09-29T18:59:22.022Z",
+  "elapsedMs": 3303,
+  "transport": "stdio",
+  "server": "apps/mcp/src/server.ts",
+  "tools": [
+    "resolve",
+    "get_market_state",
+    "quote_route",
+    "check_gate",
+    "positions"
+  ],
+  "tool": "check_gate",
+  "arguments": {
+    "ticker": "NVDA"
+  },
+  "isError": false,
+  "result": {
+    "checkedAt": "2026-09-29T18:59:25.311Z",
+    "session": {
+      "session": "regular",
+      "open": true,
+      "nextOpen": "2026-09-29T20:01:00.000Z",
+      "nextClose": "2026-09-29T19:59:00.000Z",
+      "nextEvent": {
+        "type": "close",
+        "at": "2026-09-29T19:59:00.000Z"
+      }
+    },
+    "ticker": {
+      "ticker": "NVDA",
+      "reference": 228.296,
+      "referenceSource": "ondo",
+      "session": "regular",
+      "usd": 25,
+      "best": "NVDAon",
+      "venues": [
+        {
+          "symbol": "NVDAon",
+          "platform": "ondo",
+          "address": "0xa9ee28c80f960b889dfbd1902055218cba016f75",
+          "verdict": "GO",
+          "reasons": [
+            {
+              "code": "GAP_OK",
+              "severity": "info",
+              "message": "Fill is +0.01% off the stock ($228.32 per share vs the stock at $228.30)."
+            }
+          ],
+          "displayedPerShare": 228.38400000000001,
+          "displayedGapPct": 0.00038546448470416604,
+          "fillPerShare": 228.32413842532583,
+          "executableGapPct": 0.00012325413202962478,
+          "impactPct": {
+            "25": 0
+          },
+          "holders": 58109,
+          "flags": [],
+          "quote": {
+            "ok": true,
+            "ts": 1790708364886,
+            "usd": 25,
+            "mode": "SWAP",
+            "vendor": "LiquidMesh",
+            "route": [
+              "USDT",
+              "NVDAB",
+              "NVDAon"
+            ],
+            "tokensOut": 0.10930597342111292,
+            "networkFeeUsd": 0.01710024,
+            "reason": null,
+            "code": null,
+            "message": null
+          }
+        },
+        {
+          "symbol": "NVDAB",
+          "platform": "bstocks",
+          "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "verdict": "GO",
+          "reasons": [
+            {
+              "code": "GAP_OK",
+              "severity": "info",
+              "message": "Fill is +0.09% off the stock ($228.50 per share vs the stock at $228.30)."
+            },
+            {
+              "code": "STATUS_MISSING",
+              "severity": "info",
+              "message": "This venue publishes no session status; the US market session is used instead."
+            }
+          ],
+          "displayedPerShare": 228.47,
+          "displayedGapPct": 0.0007621684129376187,
+          "fillPerShare": 228.49761940554257,
+          "executableGapPct": 0.0008831490939069141,
+          "impactPct": {
+            "25": 0
+          },
+          "holders": 9714,
+          "flags": [
+            "STATUS_MISSING"
+          ],
+          "quote": {
+            "ok": true,
+            "ts": 1790708364838,
+            "usd": 25,
+            "mode": "SWAP",
+            "vendor": "LiquidMesh",
+            "route": [
+              "USDT",
+              "NVDAB"
+            ],
+            "tokensOut": 0.10932525074090696,
+            "networkFeeUsd": 0.01700635,
+            "reason": null,
+            "code": null,
+            "message": null
+          }
+        },
+        {
+          "symbol": "NVDAx",
+          "platform": "xstocks",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "verdict": "BLOCK",
+          "reasons": [
+            {
+              "code": "QUOTE_ERROR",
+              "severity": "block",
+              "message": "Quote failed: no liquidity from any vendor (40374)."
+            },
+            {
+              "code": "STATUS_MISSING",
+              "severity": "info",
+              "message": "This venue publishes no session status; the US market session is used instead."
+            }
+          ],
+          "displayedPerShare": 229.25582638231796,
+          "displayedGapPct": 0.004204306612108713,
+          "fillPerShare": null,
+          "executableGapPct": null,
+          "impactPct": {},
+          "holders": 16,
+          "flags": [
+            "STATUS_MISSING"
+          ],
+          "quote": {
+            "ok": false,
+            "ts": 1790708365275,
+            "usd": 25,
+            "mode": null,
+            "vendor": null,
+            "route": [],
+            "tokensOut": null,
+            "networkFeeUsd": null,
+            "reason": "NO_LIQUIDITY",
+            "code": "40374",
+            "message": "Insufficient liquidity for a quote. Please decrease the transaction amount or try again later."
+          }
+        }
+      ]
+    }
+  }
+}

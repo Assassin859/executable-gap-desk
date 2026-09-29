@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "gap-desk": {
+      "command": "node",
+      "args": ["--import", "tsx", "${workspaceFolder}/apps/mcp/src/server.ts"],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}

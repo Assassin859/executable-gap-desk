@@ -23,3 +23,4 @@ export * from "./research";
 export * from "./b402";
 export * from "./identity";
 export * from "./b402Selftest";
+export * from "./x402Local";

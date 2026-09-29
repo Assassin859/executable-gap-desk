@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "id": "2026-09-29T18-58-28-078Z-x402-executablegapdeskvercelappx402gapNVDA",
+  "kind": "x402",
+  "createdAt": "2026-09-29T18:58:28.078Z",
+  "mode": "live",
+  "outcome": "PAID",
+  "refusal": null,
+  "label": "executable-gap-desk.vercel.app/x402/gap/NVDA",
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "url": "https://executable-gap-desk.vercel.app/x402/gap/NVDA",
+  "method": "GET",
+  "resource": {
+    "url": "https://executable-gap-desk.vercel.app/x402/gap/NVDA",
+    "description": "Executable gap gate for NVDA: every BSC tokenized-stock venue (Ondo, xStocks, bStocks) quoted at $25, with verdict and reasons.",
+    "mimeType": "application/json"
+  },
+  "paymentId": "faed8d85-c310-4f1f-9872-8cf29b866b98",
+  "options": [
+    {
+      "index": 1,
+      "token": "U",
+      "method": "eip3009",
+      "status": "READY_TO_SIGN",
+      "reasons": [],
+      "needApproveFirst": false,
+      "amount": "0.010000000000000000"
+    },
+    {
+      "index": 2,
+      "token": "USD1",
+      "method": "eip3009",
+      "status": "ACTION_REQUIRED",
+      "reasons": [
+        "INSUFFICIENT_BALANCE"
+      ],
+      "needApproveFirst": false,
+      "amount": "0.010000000000000000"
+    }
+  ],
+  "option": {
+    "index": 1,
+    "token": "U",
+    "tokenAddress": "0xcE24439F2D9C6a2289F741120FE202248B666666",
+    "method": "eip3009",
+    "amount": "0.010000000000000000",
+    "amountUsd": 0.009996678493364268,
+    "payTo": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+    "network": "eip155:56"
+  },
+  "signed": {
+    "headerName": "PAYMENT-SIGNATURE",
+    "expiresAt": "2026-09-29T19:00:29.000Z",
+    "approveTxHash": null,
+    "proof": {
+      "x402Version": 2,
+      "resourceUrl": "https://executable-gap-desk.vercel.app/x402/gap/NVDA",
+      "acceptedMatches": true,
+      "authorization": {
+        "from": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+        "to": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+        "value": "10000000000000000",
+        "validAfter": "1790708309",
+        "validBefore": "1790708429"
+      }
+    }
+  },
+  "settlement": {
+    "success": true,
+    "transaction": "0x24e93e2b868c8389ef7d890a656d64e9635be61e14211178a5985906897dfe2a",
+    "network": "eip155:56",
+    "payer": "0x623df829df5cf33506a0fbb152dbc885d5b61c65",
+    "bscscan": "https://bscscan.com/tx/0x24e93e2b868c8389ef7d890a656d64e9635be61e14211178a5985906897dfe2a",
+    "errorReason": null,
+    "raw": {
+      "success": true,
+      "transaction": "0x24e93e2b868c8389ef7d890a656d64e9635be61e14211178a5985906897dfe2a",
+      "network": "eip155:56",
+      "payer": "0x623df829df5cf33506a0fbb152dbc885d5b61c65"
+    }
+  },
+  "httpStatus": 200,
+  "steps": [
+    {
+      "at": "2026-09-29T18:58:28.198Z",
+      "step": "402 payment required"
+    },
+    {
+      "at": "2026-09-29T18:58:28.951Z",
+      "step": "wallet preview",
+      "detail": "2 options"
+    },
+    {
+      "at": "2026-09-29T18:58:28.951Z",
+      "step": "option picked",
+      "detail": "0.010000000000000000 U via eip3009 to 0x623dF829DF5cf33506a0fbb152dbc885d5b61C65"
+    },
+    {
+      "at": "2026-09-29T18:58:28.952Z",
+      "step": "sign"
+    },
+    {
+      "at": "2026-09-29T18:58:29.687Z",
+      "step": "waiting for validAfter",
+      "detail": "2.3s"
+    },
+    {
+      "at": "2026-09-29T18:58:32.017Z",
+      "step": "replay",
+      "detail": "PAYMENT-SIGNATURE"
+    },
+    {
+      "at": "2026-09-29T18:58:35.262Z",
+      "step": "settlement",
+      "detail": "0x24e93e2b868c8389ef7d890a656d64e9635be61e14211178a5985906897dfe2a"
+    },
+    {
+      "at": "2026-09-29T18:58:35.263Z",
+      "step": "paid",
+      "detail": "HTTP 200"
+    }
+  ]
+}

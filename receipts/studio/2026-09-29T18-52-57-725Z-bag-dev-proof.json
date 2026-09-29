@@ -1,0 +1,126 @@
+{
+  "at": "2026-09-29T18:52:57.725Z",
+  "base": "http://127.0.0.1:9000",
+  "runner": "bag dev (in-process, apps/studio)",
+  "calls": [
+    {
+      "name": "agent-card",
+      "cardName": "gapdeskstudio-agent",
+      "ms": 53,
+      "status": 200,
+      "description": "Executable Gap Desk on BNB Agent Studio (gapdeskstudio-agent): says whether a BSC tokenized stock's displayed discount is executable (GO, CAUTION or BLOCK) using the desk's public gate. Paid x402 endpoints and ERC-8004 agent 360456 live at https://executable-gap-desk.vercel.app.",
+      "skills": [
+        "check_gate"
+      ]
+    },
+    {
+      "name": "a2a message/send check_gate NVDA",
+      "ms": 3191,
+      "status": 200,
+      "result": {
+        "ticker": "NVDA",
+        "best": "NVDAon",
+        "session": "regular",
+        "venues": [
+          {
+            "symbol": "NVDAon",
+            "verdict": "GO",
+            "executableGapPct": 0.0007114409587178983
+          },
+          {
+            "symbol": "NVDAB",
+            "verdict": "GO",
+            "executableGapPct": 0.0014717812075449156
+          },
+          {
+            "symbol": "NVDAx",
+            "verdict": "BLOCK",
+            "executableGapPct": null
+          }
+        ],
+        "source": "https://executable-gap-desk.vercel.app/api/check/NVDA"
+      }
+    },
+    {
+      "name": "mcp initialize + tools/list + tools/call check_gate AAPL",
+      "ms": 1591,
+      "initStatus": 200,
+      "session": true,
+      "tools": [
+        "check_gate",
+        "wallet_info",
+        "wallet_list",
+        "wallet_address",
+        "balance_native",
+        "balance_u",
+        "pieverse_usage",
+        "agent_info",
+        "agent_by_address",
+        "job_status",
+        "job_list",
+        "job_count",
+        "tx_status",
+        "block_info",
+        "contract_call_view",
+        "network_info"
+      ],
+      "result": {
+        "ticker": "AAPL",
+        "best": "AAPLon",
+        "session": "regular",
+        "venues": [
+          {
+            "symbol": "AAPLon",
+            "verdict": "GO",
+            "executableGapPct": -0.000989568684431865
+          },
+          {
+            "symbol": "AAPLB",
+            "verdict": "GO",
+            "executableGapPct": 0.00025272263103254895
+          },
+          {
+            "symbol": "AAPLx",
+            "verdict": "BLOCK",
+            "executableGapPct": null
+          }
+        ],
+        "source": "https://executable-gap-desk.vercel.app/api/check/AAPL"
+      }
+    },
+    {
+      "name": "x402 face (FREE) GET /x402?prompt=MSTR",
+      "ms": 1856,
+      "status": 200,
+      "headers": {
+        "payment-required": null
+      },
+      "result": {
+        "ticker": "MSTR",
+        "best": "MSTRB",
+        "session": "regular",
+        "venues": [
+          {
+            "symbol": "MSTRon",
+            "verdict": "BLOCK",
+            "executableGapPct": null
+          },
+          {
+            "symbol": "MSTRB",
+            "verdict": "GO",
+            "executableGapPct": 0.000924188843286683
+          },
+          {
+            "symbol": "MSTRx",
+            "verdict": "BLOCK",
+            "executableGapPct": null
+          }
+        ],
+        "source": "https://executable-gap-desk.vercel.app/api/check/MSTR"
+      },
+      "raw": [
+        "result"
+      ]
+    }
+  ]
+}

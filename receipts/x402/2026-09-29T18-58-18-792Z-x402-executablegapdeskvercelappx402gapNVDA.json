@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "2026-09-29T18-58-18-792Z-x402-executablegapdeskvercelappx402gapNVDA",
+  "kind": "x402",
+  "createdAt": "2026-09-29T18:58:18.792Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "label": "executable-gap-desk.vercel.app/x402/gap/NVDA",
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "url": "https://executable-gap-desk.vercel.app/x402/gap/NVDA",
+  "method": "GET",
+  "resource": {
+    "url": "https://executable-gap-desk.vercel.app/x402/gap/NVDA",
+    "description": "Executable gap gate for NVDA: every BSC tokenized-stock venue (Ondo, xStocks, bStocks) quoted at $25, with verdict and reasons.",
+    "mimeType": "application/json"
+  },
+  "paymentId": "0ff0ae85-fa9a-4462-8c3d-d813b4219599",
+  "options": [
+    {
+      "index": 1,
+      "token": "U",
+      "method": "eip3009",
+      "status": "READY_TO_SIGN",
+      "reasons": [],
+      "needApproveFirst": false,
+      "amount": "0.010000000000000000"
+    },
+    {
+      "index": 2,
+      "token": "USD1",
+      "method": "eip3009",
+      "status": "ACTION_REQUIRED",
+      "reasons": [
+        "INSUFFICIENT_BALANCE"
+      ],
+      "needApproveFirst": false,
+      "amount": "0.010000000000000000"
+    }
+  ],
+  "option": {
+    "index": 1,
+    "token": "U",
+    "tokenAddress": "0xcE24439F2D9C6a2289F741120FE202248B666666",
+    "method": "eip3009",
+    "amount": "0.010000000000000000",
+    "amountUsd": 0.00999481577263292,
+    "payTo": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+    "network": "eip155:56"
+  },
+  "signed": null,
+  "settlement": null,
+  "httpStatus": 402,
+  "steps": [
+    {
+      "at": "2026-09-29T18:58:18.947Z",
+      "step": "402 payment required"
+    },
+    {
+      "at": "2026-09-29T18:58:19.961Z",
+      "step": "wallet preview",
+      "detail": "2 options"
+    },
+    {
+      "at": "2026-09-29T18:58:19.962Z",
+      "step": "option picked",
+      "detail": "0.010000000000000000 U via eip3009 to 0x623dF829DF5cf33506a0fbb152dbc885d5b61C65"
+    },
+    {
+      "at": "2026-09-29T18:58:19.970Z",
+      "step": "dry run: preview checked; not signed"
+    }
+  ]
+}

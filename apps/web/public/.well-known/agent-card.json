@@ -8,7 +8,7 @@
     { "name": "x402", "endpoint": "https://executable-gap-desk.vercel.app/x402", "version": "2", "description": "Free index: prices, accepted tokens, how to pay" },
     { "name": "x402-gap", "endpoint": "https://executable-gap-desk.vercel.app/x402/gap/{ticker}", "version": "2", "price": "0.01 U" },
     { "name": "x402-route", "endpoint": "https://executable-gap-desk.vercel.app/x402/route/{ticker}?usd={1-25}", "version": "2", "price": "0.02 U" },
-    { "name": "MCP", "endpoint": "https://github.com/Assassin859/executable-gap-desk/tree/main/apps/mcp", "version": "2025-06-18", "transport": "stdio", "status": "planned" },
+    { "name": "MCP", "endpoint": "https://github.com/Assassin859/executable-gap-desk/tree/main/apps/mcp", "version": "2025-11-25", "transport": "stdio", "status": "live", "tools": ["resolve", "get_market_state", "quote_route", "check_gate", "positions"], "description": "Read-only; run locally with node --import tsx apps/mcp/src/server.ts" },
     { "name": "agentWallet", "endpoint": "eip155:56:0x623dF829DF5cf33506a0fbb152dbc885d5b61C65" },
     { "name": "source", "endpoint": "https://github.com/Assassin859/executable-gap-desk" }
   ],

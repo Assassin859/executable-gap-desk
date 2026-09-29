@@ -1,0 +1,22 @@
+﻿[PASS] studio.toml parseable ΓÇö C:\Users\maitr\Downloads\new\apps\studio\app\agent\studio.toml
+[PASS] agent entrypoint ΓÇö src/dualMain.ts
+[PASS] [wallet] keystore_dir ΓÇö 1 keystore(s) in C:\Users\maitr\Downloads\new\apps\studio\.studio\wallets
+[PASS] [wallet] address Γåö keystore ΓÇö 0x10C4732F7EE067A70F3955320d223eA59d89D85b matches 0x10C4732F7EE067A70F3955320d223eA59d89D85b.json
+[PASS] WALLET_PASSWORD env ΓÇö set
+[WARN] [llm] provider ΓÇö none (protocol-only; implement the work hook before accepting jobs)
+[PASS] network reachable ΓÇö bsc-mainnet @ https://bsc-rpc.publicnode.com
+[PASS] seller policy ΓÇö FREE ΓÇö U, USD1, USDC, USDT on bsc-mainnet.
+[PASS] x402 pricing ΓÇö FREE ΓÇö /x402 is anonymous; B402 verify/settle, token payment, and settlement audit are bypassed.
+[PASS] storage (local) ΓÇö kind=local (file:// on disk) ΓÇö offline dev only; not durable across deploy.
+[WARN] wallet BNB balance ΓÇö 0 wei @ 0x10C4732F7EE067A70F3955320d223eA59d89D85b ΓÇö need ΓëÑ 0.02 BNB on bsc-mainnet for 8183 escrow / ERC-8004 register (each on-chain action reserves Γëê 0.006 BNB worst-case)
+[WARN] wallet U balance ΓÇö 0 raw @ 0x10C4732F7EE067A70F3955320d223eA59d89D85b ΓÇö need ΓëÑ 1 U on bsc-mainnet for one auto-topup chunk
+[INFO] seller asset U balance ΓÇö 0 U (0 atomic) @ 0x10C4732F7EE067A70F3955320d223eA59d89D85b (token 0xcE24439F2D9C6a2289F741120FE202248B666666)
+[INFO] seller asset USD1 balance ΓÇö 0 USD1 (0 atomic) @ 0x10C4732F7EE067A70F3955320d223eA59d89D85b (token 0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d)
+[INFO] seller asset USDC balance ΓÇö 0 USDC (0 atomic) @ 0x10C4732F7EE067A70F3955320d223eA59d89D85b (token 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d)
+[INFO] seller asset USDT balance ΓÇö 0 USDT (0 atomic) @ 0x10C4732F7EE067A70F3955320d223eA59d89D85b (token 0x55d398326f99059fF775485246999027B3197955)
+[WARN] ERC-8004 registered ΓÇö no ERC-8004 agent found for this wallet (run `bag erc8004 register`)
+[PASS] deploy: bnbagent-deploy ΓÇö bun on PATH (C:\Users\maitr\.bun\bin\bun.exe); deploys use the declared @bnbagent/deploy-cli dependency
+[WARN] deploy: AWS credentials ΓÇö not configured (needed to deploy the Agent) ΓÇö fix: set AWS_ACCESS_KEY_ID / AWS_PROFILE (or fill ~/.aws/credentials ΓÇö see the AWS Console's access-key page)
+[WARN] deploy: docker ΓÇö not found (needed to build the twak Agent container image) ΓÇö fix: install Docker (https://docs.docker.com/get-docker)
+[WARN] deploy: twak CLI ΓÇö not found, neither project-pinned nor on PATH (needed for wallet.kind='twak') ΓÇö fix: pnpm install (or npm install -g @trustwallet/cli@0.20.0)
+[PASS] AGENTS.md skill trigger ΓÇö loads /bnbagent-studio

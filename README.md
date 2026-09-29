@@ -20,7 +20,7 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 | 2 | Executable quotes and the GO / CAUTION / BLOCK gate | done |
 | 3 | Guarded mainnet fills via `baw` with receipts | done |
 | 4 | Web desk: radar, Truth Cards, proof ledger, DX log | done |
-| 5 | Agentic Wallet and BNB Agent Studio integrations: live dashboard (5.1), gated wallet trading (5.2), the x402 buyer (5.3), and the B402 seller with ERC-8004 identity (5.4) done; MCP and Studio next | in progress |
+| 5 | Agentic Wallet and BNB Agent Studio integrations: live dashboard (5.1), gated wallet trading (5.2), the x402 buyer (5.3), the B402 seller with ERC-8004 identity (5.4), and the MCP server, Studio agent and first paid sale (5.5) done; proof-page polish next | in progress |
 | 6 | Ship: polish, demo, DX report | planned |
 
 ## Quickstart
@@ -202,11 +202,13 @@ How a sale works ([`packages/core/src/b402.ts`](packages/core/src/b402.ts), [`ap
 - **Replays:** settled authorization nonces are remembered until they expire, so the same proof can't be served twice. This is per server instance (best effort on serverless). Settle is idempotent and the nonce is single-use on-chain, so a replay never charges twice anywhere.
 - **Keys:** the existing `BW3_API_KEY`/`BW3_API_SECRET` sign B402 calls once the project is onboarded (`B402_API_KEY`/`B402_API_SECRET` override them). `B402_PAY_TO` (default `GAP_WALLET_ADDRESS`) must equal the receiving address fixed at onboarding. B402 answers success as `000000000`, a third success code ([DX #39](docs/DX_LOG.md#39-b402-success-is-code-000000000-nine-zeros-in-a-new-envelope-binances-own-demo-merchant-checks-for-000000)).
 
-**Self-test, live 18:27 UTC:** `gap b402 selftest --live` builds our own 0.01 U requirement paying the Agentic Wallet to itself, signs it with `baw x402-payment sign`, and sends it to B402 **Verify only, never Settle**, so nothing can move. B402 answered **`isValid: true`**, which also proves the onboarded payTo is the wallet (no `recipient_mismatch`) ([record](receipts/b402/2026-09-29T18-27-45-456Z-b402-selftest.json)). The deployed `/x402/gap/NVDA` answers an unpaid request with a 402 carrying U and USD1 requirements. No paid purchase from our own seller yet: the independent paid call comes with Part 5.5.
+**Self-test, live 18:27 UTC:** `gap b402 selftest --live` builds our own 0.01 U requirement paying the Agentic Wallet to itself, signs it with `baw x402-payment sign`, and sends it to B402 **Verify only, never Settle**, so nothing can move. B402 answered **`isValid: true`**, which also proves the onboarded payTo is the wallet (no `recipient_mismatch`) ([record](receipts/b402/2026-09-29T18-27-45-456Z-b402-selftest.json)). The deployed `/x402/gap/NVDA` answers an unpaid request with a 402 carrying U and USD1 requirements.
+
+**First paid sale, live 18:58 UTC:** `gap x402 https://executable-gap-desk.vercel.app/x402/gap/NVDA --live` paid 0.01 U by `eip3009`. The deployed route ran B402 Verify, the gate and B402 Settle, and answered 200 with the NVDA gate JSON. B402's signer `0x34F7…0899` submitted `transferWithAuthorization` and paid the gas ([0x24e9…fe2a](https://bscscan.com/tx/0x24e93e2b868c8389ef7d890a656d64e9635be61e14211178a5985906897dfe2a), [sale record](receipts/x402-sales/2026-09-29T18-58-28-078Z-NVDA.json)). This is a **self-payment**: the buyer is the same Agentic Wallet as the payee, so the balance is unchanged. We meant to buy from the Studio project's own wallet, but the Agentic Wallet only sends to addresses in its address book, which can only be edited in the phone app ([DX #41](docs/DX_LOG.md#41-wallet-send-only-reaches-address-book-recipients-help-doesnt-say-so-and-no-cli-command-can-add-one)). The code path for an independent buyer exists (`signEip3009Payment` in [`x402Local.ts`](packages/core/src/x402Local.ts), tested against `sellX402`), but it hasn't moved money yet.
 
 ### Agent identity (ERC-8004)
 
-The desk is registered on BSC mainnet as **[ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) agent `360456`** in the IdentityRegistry [`0x8004A169…a432`](https://bscscan.com/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432), owned by the Agentic Wallet. Its `agentURI` is the [agent card](https://executable-gap-desk.vercel.app/.well-known/agent-card.json), a registration-v1 file listing the web desk, the x402 endpoints with prices, the MCP server (planned), the agent wallet and the source. The card names `360456` back, so the link is two-way.
+The desk is registered on BSC mainnet as **[ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) agent `360456`** in the IdentityRegistry [`0x8004A169…a432`](https://bscscan.com/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432), owned by the Agentic Wallet. Its `agentURI` is the [agent card](https://executable-gap-desk.vercel.app/.well-known/agent-card.json), a registration-v1 file listing the web desk, the x402 endpoints with prices, the MCP server, the agent wallet and the source. The card names `360456` back, so the link is two-way.
 
 ```bash
 pnpm gap identity register            # dry run: card check, fee rail, wallet preview and simulation
@@ -215,6 +217,40 @@ pnpm gap identity show                # tokenURI + ownerOf, fetch the card, chec
 ```
 
 Rails ([`packages/core/src/identity.ts`](packages/core/src/identity.ts)): the kill switch; an https agent URI that serves a valid registration file; no second registration, checked both against [`receipts/identity.json`](receipts/identity.json) and the registry's `balanceOf(wallet)`; a fee-based gas rail for this call only (the BNB balance must cover 5× the estimated fee instead of the usual 0.001 BNB reserve); the wallet's `contract-call preview` must simulate cleanly with no risks; then a typed confirmation, execute, the receipt, and `agentId` read from the registry's own `Registered` event.
+
+### MCP server (Cursor)
+
+[`apps/mcp`](apps/mcp) is a stdio [MCP](https://modelcontextprotocol.io) server over the same core. It has five tools, all marked read-only; none of them can sign or trade:
+
+| Tool | Input | Returns |
+|------|-------|---------|
+| `resolve` | `query`: ticker, venue symbol or contract | Every BSC venue for it (Ondo, xStocks, bStocks) |
+| `get_market_state` | optional `asset` | US session, next open and close, optionally per venue |
+| `quote_route` | `symbol`, `usd` (up to 5 sizes, $1,000 max each) | Fill per share, executable gap, route and vendor, with no quote ids or router addresses |
+| `check_gate` | `ticker`, optional `ladder` | GO / CAUTION / BLOCK per venue with reasons, and the best venue |
+| `positions` | none | The Agentic Wallet's stock holdings, each with a gated sell quote |
+
+The repo ships [`.cursor/mcp.json`](.cursor/mcp.json), so opening the folder in Cursor offers a `gap-desk` server (enable it under Settings → MCP). It reads `BW3_API_KEY`/`BW3_API_SECRET` from `.env.local` for quotes. From a terminal, `pnpm mcp` starts the server from that same config through a stdio client:
+
+```bash
+pnpm mcp                         # list the tools
+pnpm mcp check_gate NVDA --save  # call one; --save writes receipts/mcp/
+```
+
+First call, 18:59 UTC: `check_gate NVDA` over stdio ([receipt](receipts/mcp/2026-09-29T18-59-22-022Z-check_gate.json)).
+
+### BNB Agent Studio agent
+
+[`apps/studio`](apps/studio) is a [BNB Agent Studio](https://github.com/bnb-chain/bnbagent-studio) project made with `bag init` (bsc-mainnet, `evm-local` wallet, A2A + MCP + x402 faces, no LLM). Its work function ([`gapWork.ts`](apps/studio/app/agent/src/gapWork.ts)) takes a ticker from the prompt and returns the desk's public gate from `/api/check/:ticker`. It adds a `check_gate` skill to the A2A card, a `check_gate` MCP tool, and serves the same answer on its free x402 face. It runs locally and isn't deployed; the desk's on-chain identity stays ERC-8004 agent `360456`.
+
+```bash
+cd apps/studio
+pnpm install                     # standalone; not part of the root workspace
+bag doctor                       # 11 pass; the warnings are the empty wallet, no LLM, no second ERC-8004 id and no deploy tools, all by design
+bag dev                          # http://localhost:9000: agent card, /a2a, /mcp, /x402
+```
+
+Proof, 18:52 UTC ([receipt](receipts/studio/2026-09-29T18-52-57-725Z-bag-dev-proof.json)): the agent card, A2A `message/send` for NVDA, MCP `tools/call check_gate` for AAPL and `GET /x402?prompt=MSTR`, all HTTP 200 with live gate verdicts. The project's wallet is `0x10C4…D85b`. Its keystore and password stay in `apps/studio/.studio/`, which is gitignored. The wallet holds nothing, because we couldn't fund it ([DX #41](docs/DX_LOG.md#41-wallet-send-only-reaches-address-book-recipients-help-doesnt-say-so-and-no-cli-command-can-add-one)). `bag x402 trust` caps what it may pay our seller at 0.02 U per call.
 
 ### Web desk
 
@@ -275,9 +311,12 @@ flowchart LR
 - **Wallet orders** (`marketOrder.ts`, `bawWallet.ts`): gated `baw market-order` / `limit-order` trading and stablecoin conversions, with typed wrappers for the wallet CLI (including `x402-payment preview/sign`).
 - **x402 buyer** (`x402.ts`): 402 decoding, option matching, caps, the sign-and-replay state machine and `receipts/x402/`. **Research** (`research.ts`): paid BNB Stock Agent jobs, saved before polling, with report download and summary.
 - **x402 seller** (`b402.ts`, `b402Selftest.ts`): the signed B402 client (`supported`, `verify`, `settle`), requirement building, the framework-free `sellX402` behind the web routes, and the verify-only self-test.
+- **Local x402 signer** (`x402Local.ts`): signs an `eip3009` `TransferWithAuthorization` with a local key, with amount and payee caps, for buyers that aren't the Agentic Wallet.
 - **Identity** (`identity.ts`): the ERC-8004 registry ABI, agent-card schema, gated `register(agentURI)` and `show`.
 - **Public snapshot** (`publicSnapshot.ts`): the slim, JSON-safe shape the web desk ships (no quote ids, routers or raw API bodies).
 - **Web desk** (`apps/web`): Next.js App Router pages over the public snapshot, live checks through `checkTicker`, the paid `/x402/*` routes, the agent card and the localhost-only execute route.
+- **MCP server** (`apps/mcp`): five read-only tools over the core, served on stdio.
+- **Studio agent** (`apps/studio`): a BNB Agent Studio project whose work function calls the desk's public gate.
 
 ```text
 packages/core/     data layer (config, http, schemas, registry, session, prices, matrix, signer, quotes, gate, snapshot)
@@ -286,10 +325,15 @@ packages/core/policy/  gate policy (JSON, zod-validated)
 apps/agent/        gap CLI
 apps/web/          web desk (Next.js): radar, Truth Cards, proof, DX log, local execute panel
 apps/web/data/     committed public snapshot behind the radar
+apps/mcp/          MCP server (stdio) and its test client; config in .cursor/mcp.json
+apps/studio/       BNB Agent Studio project (standalone install; wallet in .studio/, gitignored)
 scripts/           fixture recorder, web snapshot builder
 receipts/exec/     one JSON receipt per gap exec / gap fund run (fills and refusals)
 receipts/x402/     one JSON receipt per x402 payment attempt (paid, rejected, refused, dry run)
+receipts/x402-sales/  paid sales of our own x402 endpoints, checked on-chain
 receipts/b402/     B402 verify-only self-test records
+receipts/mcp/      saved MCP tool calls
+receipts/studio/   bag doctor, bag dev log and the local A2A / MCP / x402 proof
 receipts/identity.json  the ERC-8004 registration (attempts in receipts/identity/)
 docs/DX_LOG.md     developer-experience findings
 docs/vendor/       snapshot of the Binance Web3 llms-full.txt docs
@@ -340,6 +384,8 @@ Both positions from the buys above were closed in full, each sold within 0.1% of
 |------------|------|------|--------|----|
 | 18:27:45 | B402 self-test: 0.01 U `eip3009` authorization from the wallet to itself, **Verify only** | free (nothing settles) | **`isValid: true`**, payer = the Agentic Wallet ([record](receipts/b402/2026-09-29T18-27-45-456Z-b402-selftest.json)) | none |
 | 18:28:42 | **ERC-8004 `register(agentURI)`** on the IdentityRegistry | 200,652 gas, 0.0000125 BNB | **agentId 360456**, owner the Agentic Wallet, `agentURI` the agent card ([record](receipts/identity.json)) | [0xd8b6…672e](https://bscscan.com/tx/0xd8b607b0532931f5d95e438f141b39f2906106deda32667d5209e302ff6f672e) |
+| 18:57:02 | Fund the Studio wallet `0x10C4…D85b` with 0.05 U (`baw wallet send`) | nothing sent | Blocked: `351703`, recipient not in the address book ([record](receipts/studio/2026-09-29T18-57-02Z-fund-buyer-blocked-351703.txt), [DX #41](docs/DX_LOG.md#41-wallet-send-only-reaches-address-book-recipients-help-doesnt-say-so-and-no-cli-command-can-add-one)) | none |
+| 18:58:28 | **First paid sale: `GET /x402/gap/NVDA`** on the live site, bought by the Agentic Wallet from itself | **0.01 U**, `eip3009`; gas paid by B402 (76,737 at 0.05 gwei) | **HTTP 200**, NVDA gate JSON; B402 settled, `AuthorizationUsed` and a 0.01 U `Transfer` wallet to wallet ([sale record](receipts/x402-sales/2026-09-29T18-58-28-078Z-NVDA.json)) | [0x24e9…fe2a](https://bscscan.com/tx/0x24e93e2b868c8389ef7d890a656d64e9635be61e14211178a5985906897dfe2a) |
 
 `gap identity show` then resolved `tokenURI(360456)` to the deployed card, which lists the agentId back. The wallet paid about 0.062 gwei against the node's 0.05 gwei quote; the 5× fee rail allowed for that.
 
@@ -356,7 +402,7 @@ Both positions from the buys above were closed in full, each sold within 0.1% of
 
 ## Developer experience
 
-We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (40 entries so far; #22–#28 come from the live fills, #29 from deploying the web desk, #30–#33 from trading through the Agentic Wallet, #34–#38 from paying over x402, #39–#40 from selling over B402). The [DX page](https://executable-gap-desk.vercel.app/dx) lists them by severity.
+We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (42 entries so far; #22–#28 come from the live fills, #29 from deploying the web desk, #30–#33 from trading through the Agentic Wallet, #34–#38 from paying over x402, #39–#40 from selling over B402, #41–#42 from the Studio agent and the paid sale). The [DX page](https://executable-gap-desk.vercel.app/dx) lists them by severity.
 
 _The full DX report will be summarized here in Part 6._
 

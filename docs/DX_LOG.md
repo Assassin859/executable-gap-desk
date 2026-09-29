@@ -46,6 +46,8 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 | 38 | 2026-09-29 | x402 sellers | Medium | `PAYMENT-RESPONSE` has a different shape per seller; CoinMarketCap's carries no transaction hash |
 | 39 | 2026-09-29 | B402 API | Medium | B402 success is code `000000000` (nine zeros) in a new envelope; Binance's own demo merchant checks for `000000` |
 | 40 | 2026-09-29 | B402 API | Medium | `/supported` names tokens only by EIP-712 domain name, with no asset address, yet says not to hardcode names |
+| 41 | 2026-09-29 | `baw` | High | `wallet send` only reaches address-book recipients; `--help` doesn't say so, and no CLI command can add one |
+| 42 | 2026-09-29 | Agent Studio | Low | The `bag dev` banner lists skills and pricing the running agent doesn't have |
 
 ---
 
@@ -376,3 +378,17 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 - **Expected:** an `asset` address per kind, because the merchant's `paymentRequirements.asset` must be the token contract, and the docs warn: "Do not hardcode `signerAddress`, `spenderAddress`, EIP-712 `name`, or `version`."
 - **Actual:** to build requirements, a merchant must map the domain name to an address itself: "United Stables" to `0xcE24…6666` (U), "World Liberty Financial USD" to `0x8d0D…8B0d` (USD1). That is exactly the hardcoding the docs warn against, and a rename would silently drop the token from our 402. The desk keeps that table in one place (`B402_TOKENS`) and covers it with a test built from the recorded `/supported`.
 - **Suggested fix:** add `asset` (and `decimals`) to every kind.
+
+## 41. `wallet send` only reaches address-book recipients; `--help` doesn't say so, and no CLI command can add one
+
+- **Repro:** `baw wallet send --binanceChainId 56 --amount 0.05 --tokenAddress 0xcE24…6666 --recipient 0x10C4…D85b` (baw 1.10.0, 18:57 UTC), to fund the BNB Agent Studio project's own `evm-local` wallet so it could buy from our seller. Receipt: `receipts/studio/2026-09-29T18-57-02Z-fund-buyer-blocked-351703.txt`.
+- **Expected:** either the send goes through within the wallet's limits, or `--help` states the rule and the CLI offers a way to satisfy it.
+- **Actual:** `{"code": 351703, "name": "SERVICE_ERROR", "message": "This transfer was blocked because the recipient address is not in your address book. Add this address in your binance wallet app, then retry the transfer."}`. Nothing was sent. The error itself is clear, and the skill docs mention the address book ("Send tokens to addresses in your address book (Binance App → Wallet → Settings → Address Book)"), but `baw wallet send --help` only says "Send tokens to an address", and no `baw` command lists or adds entries. So an agent can't fund a second agent's wallet without a person opening the phone app. On Windows the process then crashed on exit with the libuv assertion from [#13](#13-windows-baw-crashes-with-a-libuv-assertion-after-error-responses). We fell back to the Agentic Wallet paying our own seller (a self-payment); see the README ledger.
+- **Suggested fix:** put the address-book rule in `--help`, add `baw wallet address-book list`, and allow a pending add that the user confirms in the app.
+
+## 42. The `bag dev` banner lists skills and pricing the running agent doesn't have
+
+- **Repro:** `bag init gapdeskstudio --network bsc-mainnet --wallet-kind evm-local --rails b402 --payment-protocol x402 --protocols A2A,MCP,X402 --seller-price-usd 0 …` (bag 0.0.14), turn on the x402 face with `bag config set payments.b402_seller.enabled true`, then `bag doctor` and `bag dev`. Receipts: `receipts/studio/2026-09-29T18-52-18Z-bag-doctor.txt`, `…-bag-dev-log.txt` and `…-bag-dev-proof.json`.
+- **Expected:** the banner describes what the agent actually serves, matching `bag doctor`.
+- **Actual:** doctor says "x402 pricing — FREE — /x402 is anonymous; B402 verify/settle … are bypassed", but the banner says "x402 seller at http://localhost:9000/x402 (PAID — active when B402 credentials are configured)". The banner also advertises "negotiate / notify_funded" on MCP and A2A, yet the live agent card lists only our `check_gate` skill, and MCP `tools/list` returns `check_gate` plus read-only chain tools, with no `negotiate` or `notify_funded` (the ERC-8183 rail wasn't selected). The FREE `/x402` call returned 200 with no `PAYMENT-REQUIRED`, so doctor was right.
+- **Suggested fix:** build the banner from the same resolved config that doctor and the runtime use.

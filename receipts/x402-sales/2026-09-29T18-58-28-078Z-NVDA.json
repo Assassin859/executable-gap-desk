@@ -1,0 +1,56 @@
+{
+  "kind": "x402-sale",
+  "at": "2026-09-29T18:58:28.078Z",
+  "seller": {
+    "endpoint": "https://executable-gap-desk.vercel.app/x402/gap/NVDA",
+    "route": "/x402/gap/:ticker",
+    "priceU": "0.01",
+    "payTo": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+    "facilitator": "Binance B402",
+    "agentId": 360456
+  },
+  "buyer": {
+    "address": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+    "via": "gap x402 --live (Agentic Wallet, baw x402-payment)",
+    "independent": false,
+    "note": "Self-payment: the Studio wallet 0x10C4732F7EE067A70F3955320d223eA59d89D85b could not be funded because the Agentic Wallet only sends to address-book entries (baw error 351703), and no other funds were available."
+  },
+  "requirement": {
+    "scheme": "exact",
+    "network": "eip155:56",
+    "asset": "0xcE24439F2D9C6a2289F741120FE202248B666666",
+    "amount": "10000000000000000",
+    "method": "eip3009"
+  },
+  "http": {
+    "status": 200
+  },
+  "settlement": {
+    "transaction": "0x24e93e2b868c8389ef7d890a656d64e9635be61e14211178a5985906897dfe2a",
+    "bscscan": "https://bscscan.com/tx/0x24e93e2b868c8389ef7d890a656d64e9635be61e14211178a5985906897dfe2a",
+    "onchain": {
+      "hash": "0x24e93e2b868c8389ef7d890a656d64e9635be61e14211178a5985906897dfe2a",
+      "status": "success",
+      "block": "124768659",
+      "time": "2026-09-29T18:58:34.000Z",
+      "from": "0x34f7a661160780ce1346e6d7b96d2be244590899",
+      "to": "0xce24439f2d9c6a2289f741120fe202248b666666",
+      "gasUsed": "76737",
+      "effectiveGasPriceGwei": "0.05",
+      "uLogs": [
+        {
+          "event": "AuthorizationUsed",
+          "authorizer": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+          "nonce": "0x1d03ac759f212e5fb664126af6bb5690aaa6f10533e4d9dca99747754ab9b7c8"
+        },
+        {
+          "event": "Transfer",
+          "from": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+          "to": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+          "value": "10000000000000000"
+        }
+      ]
+    }
+  },
+  "buyerReceipt": "receipts/x402/2026-09-29T18-58-28-078Z-x402-executablegapdeskvercelappx402gapNVDA.json"
+}
