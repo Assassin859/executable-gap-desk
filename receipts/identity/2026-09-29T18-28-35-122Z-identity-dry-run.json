@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "kind": "erc8004-identity",
+  "createdAt": "2026-09-29T18:28:35.122Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+  "agentRegistry": "eip155:56:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+  "agentURI": "https://executable-gap-desk.vercel.app/.well-known/agent-card.json",
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "agentId": null,
+  "card": {
+    "name": "Executable Gap Desk",
+    "services": [
+      "web",
+      "x402",
+      "x402-gap",
+      "x402-route",
+      "MCP",
+      "agentWallet",
+      "source"
+    ]
+  },
+  "gas": {
+    "estimate": "203412",
+    "gasPriceWei": "50000000",
+    "feeWei": "12204700000000",
+    "feeBnb": 0.0000122047,
+    "balanceWei": "963154793230066",
+    "requiredWei": "61023500000000"
+  },
+  "tx": {
+    "to": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+    "value": "0",
+    "data": "0xf2c298be0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000004268747470733a2f2f65786563757461626c652d6761702d6465736b2e76657263656c2e6170702f2e77656c6c2d6b6e6f776e2f6167656e742d636172642e6a736f6e000000000000000000000000000000000000000000000000000000000000",
+    "preview": {
+      "requestId": "829b0bb254d8427e8845bc9c21c2248c",
+      "requireConfirmation": false,
+      "simulationOk": true,
+      "risks": []
+    }
+  },
+  "steps": [
+    {
+      "at": "2026-09-29T18:28:35.251Z",
+      "step": "agent card",
+      "detail": "Executable Gap Desk: web, x402, x402-gap, x402-route, MCP, agentWallet, source"
+    },
+    {
+      "at": "2026-09-29T18:28:36.327Z",
+      "step": "gas",
+      "detail": "203412 gas at 0.05 gwei: about 0.00001220 BNB; balance 0.000963 BNB"
+    },
+    {
+      "at": "2026-09-29T18:28:36.327Z",
+      "step": "wallet preview"
+    },
+    {
+      "at": "2026-09-29T18:28:37.229Z",
+      "step": "dry run: previewed and simulated; not sent"
+    }
+  ]
+}
