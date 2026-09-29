@@ -29,7 +29,7 @@ export interface LedgerRow {
 }
 
 function describe(r: ExecReceipt): string {
-  if (r.kind === "funding") return "BNB to USDT funding";
+  if (r.kind === "funding") return r.via === "market-order" ? `Convert ${r.symbol.replace("-", " to ")} (wallet market order)` : "BNB to USDT funding";
   if (r.kind === "limit") return r.symbol.startsWith("cancel-") || r.outcome === "CANCELED" ? `Cancel limit buy ${r.symbol.replace(/^cancel-/, "")}` : `Limit buy ${r.symbol}`;
   const side = r.side === "sell" ? "Sell" : "Buy";
   return `${side} ${r.symbol}${r.via === "market-order" ? " (wallet market order)" : ""}`;
@@ -42,6 +42,7 @@ export function toLedgerRow(r: ExecReceipt): LedgerRow {
     const label = r.kind === "funding" ? "funding swap" : r.via === "market-order" ? "market order" : "swap";
     txs.push({ label, hash: r.swap.txHash, url: r.swap.bscscan });
   }
+  const perShare = r.kind !== "funding";
   return {
     id: r.id,
     createdAt: r.createdAt,
@@ -53,10 +54,10 @@ export function toLedgerRow(r: ExecReceipt): LedgerRow {
     outcome: r.outcome,
     usd: r.usd,
     verdict: r.gate?.verdict ?? null,
-    quotedPerShare: r.fill?.quotedFillPerShare ?? r.quote?.fillPerShare ?? null,
-    filledPerShare: r.fill?.fillPerShare ?? null,
+    quotedPerShare: perShare ? (r.fill?.quotedFillPerShare ?? r.quote?.fillPerShare ?? null) : null,
+    filledPerShare: perShare ? (r.fill?.fillPerShare ?? null) : null,
     realizedVsQuotedPct: r.fill?.realizedVsQuotedPct ?? null,
-    realizedGapPct: r.fill?.realizedGapPct ?? null,
+    realizedGapPct: perShare ? (r.fill?.realizedGapPct ?? null) : null,
     tokensOut: r.fill?.tokensOut ?? null,
     orderId: r.order?.id ?? null,
     triggerPriceUsd: r.limit?.triggerPriceUsd ?? null,

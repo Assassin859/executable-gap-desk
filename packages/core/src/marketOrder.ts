@@ -2,7 +2,7 @@ import { formatUnits, parseUnits } from "viem";
 import { isBawRejection } from "./baw";
 import { createBawWallet, type BawWallet, type FindOrderParams, type OrderInfo } from "./bawWallet";
 import { bscTxUrl, createChainReader, transferSum, type ChainReader } from "./chain";
-import { USDT_BSC } from "./config";
+import { STABLES, USDT_BSC } from "./config";
 import {
   GAS_RESERVE_WEI,
   Refusal,
@@ -331,6 +331,138 @@ export async function executeMarketOrder(symbol: string, opts: MarketOrderOption
       setFill(r, got, paid, "balance-change", f);
     }
     run.step("filled", fillText(r));
+    return finishRun(run, dir);
+  } catch (err) {
+    return finishRun(run, dir, err);
+  }
+}
+
+export type Stable = keyof typeof STABLES;
+/** How far a stablecoin conversion's wallet quote may sit from 1:1. */
+export const MAX_STABLE_DEVIATION = 0.005;
+
+export interface ConvertStableOptions {
+  from: string;
+  to: string;
+  /** Decimal string in from-token units. */
+  qty: string;
+  live?: boolean;
+  wallet?: string;
+  policy?: Policy;
+  env?: NodeJS.ProcessEnv;
+  deps?: Partial<MarketDeps>;
+  receiptsDir?: string | null;
+}
+
+const asStable = (s: string): Stable => {
+  const k = Object.keys(STABLES).find((x) => x.toLowerCase() === s.toLowerCase()) as Stable | undefined;
+  if (!k) throw new Refusal("NOT_A_STABLE", `${s} is not one of the stablecoins this desk converts (${Object.keys(STABLES).join(", ")}).`);
+  return k;
+};
+
+/**
+ * Converts between USD stablecoins (USDT, U, USD1) through an Agentic Wallet market order, for example
+ * USDT to U to pay x402 without a Permit2 approval. The wallet's quote must be within 0.5% of 1:1, and
+ * the receipt is `kind: "funding"`, so it never counts toward stock spend.
+ */
+export async function convertStable(opts: ConvertStableOptions): Promise<ExecResult> {
+  const env = opts.env ?? process.env;
+  const policy = opts.policy ?? DEFAULT_POLICY;
+  const d = resolveDeps(opts.deps);
+  const wallet = opts.wallet ?? env.GAP_WALLET_ADDRESS ?? "";
+  const mode: ExecMode = opts.live ? "live" : "dry-run";
+  const dir = opts.receiptsDir === undefined ? null : opts.receiptsDir;
+  const run = newRun("funding", `${opts.from}-${opts.to}`, Number(opts.qty) || 0, mode, wallet, d);
+  const { r } = run;
+  r.via = "market-order";
+  try {
+    commonRails(env, wallet);
+    const from = asStable(opts.from);
+    const to = asStable(opts.to);
+    r.symbol = `${from}-${to}`;
+    if (from === to) throw new Refusal("NOT_A_STABLE", "Pick two different stablecoins.");
+    if (!/^\d+(\.\d+)?$/.test(opts.qty) || !(Number(opts.qty) > 0)) throw new Refusal("BAD_SIZE", `Quantity must be a positive plain decimal, got ${opts.qty}.`);
+    const qty = trimDecimal(opts.qty);
+    if (Number(qty) > policy.maxTradeUsd) throw new Refusal("SIZE_OVER_CAP", `${qty} ${from} is over the $${policy.maxTradeUsd} per-trade cap.`);
+    const [fromToken, toToken] = [STABLES[from], STABLES[to]];
+
+    run.step("wallet quote", `${qty} ${from} to ${to}`);
+    const wq = await d.wallet.quote({ fromToken, toToken, qty, slippage: policy.slippagePct });
+    const rate = Number(wq.toCoinAmount) / Number(wq.fromCoinAmount);
+    r.walletQuote = { fromQty: wq.fromCoinAmount, toQty: wq.toCoinAmount, fillPerShare: rate, deviationPct: rate - 1, gapPct: null };
+    if (!Number.isFinite(rate) || Math.abs(rate - 1) > MAX_STABLE_DEVIATION) {
+      throw new Refusal("STABLE_DEPEG", `The wallet quotes ${rate.toFixed(6)} ${to} per ${from}; conversions need 1:1 within ±${(MAX_STABLE_DEVIATION * 100).toFixed(1)}%.`);
+    }
+    run.step("wallet quote checked", `${wq.toCoinAmount} ${to} (${pct(rate - 1)} vs 1:1)`);
+
+    const [fromBal, toBal, bnb] = await Promise.all([d.chain.balance(fromToken, wallet), d.chain.balance(toToken, wallet), d.chain.balance(NATIVE_BNB, wallet)]);
+    r.balances = { usdt: (from === "USDT" ? fromBal : to === "USDT" ? toBal : 0n).toString(), bnb: bnb.toString(), allowance: "0", token: toBal.toString() };
+    if (mode === "live") {
+      if (fromBal < parseUnits(qty, 18)) throw new Refusal("INSUFFICIENT_BALANCE", `Wallet holds ${units(fromBal).toFixed(4)} ${from}; the conversion needs ${qty}.`);
+      if (bnb < GAS_RESERVE_WEI) throw new Refusal("INSUFFICIENT_GAS", `Wallet holds ${units(bnb)} BNB; market orders need at least ${units(GAS_RESERVE_WEI)} BNB for gas.`);
+    }
+    if (mode === "dry-run") {
+      r.outcome = "SIMULATED";
+      run.step("dry run: wallet quote checked; not sent", "pass --live to send the market order");
+      return finishRun(run, dir);
+    }
+
+    if (!(await d.confirm(`Convert ${qty} ${from} to about ${Number(wq.toCoinAmount).toFixed(4)} ${to} through an Agentic Wallet market order. It executes immediately.`))) {
+      throw new Refusal("USER_DECLINED", "Declined at the confirmation prompt (conversion).");
+    }
+    run.step("market order: send");
+    const sentAt = d.now();
+    const placed = await d.wallet.swap({ fromToken, toToken, qty, slippage: policy.slippagePct }).catch((e: unknown) => {
+      throw isBawRejection(e) ? new Refusal("WALLET_REJECTED", `The Agentic Wallet refused the market order: ${e.message}`) : e;
+    });
+    run.broadcast = true;
+    r.order = { id: placed.id, status: placed.status, raw: placed.raw };
+    run.step("market order: accepted", `order ${placed.id} ${placed.status}`);
+    const done = await pollOrder(run, placed, { fromToken, toToken, qty, sinceMs: sentAt }, policy);
+    run.step("market order: finished", done.txHash ?? "no tx hash in the order");
+
+    let got: bigint;
+    let paid: bigint;
+    let source: "transfer-logs" | "balance-change";
+    if (done.txHash) {
+      const receipt = await d.chain.waitForReceipt(done.txHash);
+      r.swap = {
+        to: receipt.to ?? "",
+        value: "0",
+        txHash: done.txHash,
+        bscscan: bscTxUrl(done.txHash),
+        blockNumber: receipt.blockNumber.toString(),
+        gasUsed: receipt.gasUsed.toString(),
+        gasCostBnb: units(receipt.gasUsed * receipt.effectiveGasPrice),
+        minReceiveAmount: null,
+        slippagePct: policy.slippagePct,
+        gas: null,
+        gasPrice: null,
+        worstCaseGapPct: null,
+      };
+      if (receipt.status !== "success") throw new Refusal("TX_REVERTED", `The conversion transaction reverted on-chain (${done.txHash}).`);
+      got = transferSum(receipt.logs, toToken, wallet, "to");
+      paid = transferSum(receipt.logs, fromToken, wallet, "from");
+      source = "transfer-logs";
+    } else {
+      const [fromAfter, toAfter] = await Promise.all([d.chain.balance(fromToken, wallet), d.chain.balance(toToken, wallet)]);
+      got = toAfter - toBal;
+      paid = fromBal - fromAfter;
+      source = "balance-change";
+    }
+    const [gotN, paidN] = [units(got), units(paid)];
+    const realized = paidN > 0 ? gotN / paidN : null;
+    r.fill = {
+      tokensOut: gotN,
+      usdSpent: paidN,
+      source,
+      fillPerShare: realized,
+      quotedFillPerShare: rate,
+      realizedVsQuotedPct: realized ? realized / rate - 1 : null,
+      realizedGapPct: realized ? realized - 1 : null,
+    };
+    r.outcome = "FILLED";
+    run.step("filled", `${gotN.toFixed(6)} ${to} for ${paidN.toFixed(6)} ${from}`);
     return finishRun(run, dir);
   } catch (err) {
     return finishRun(run, dir, err);

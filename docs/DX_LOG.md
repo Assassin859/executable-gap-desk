@@ -39,6 +39,11 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 | 31 | 2026-09-29 | `baw` | High | `market-order swap` returns an `orderId` one lower than the stored order, and no status |
 | 32 | 2026-09-29 | `baw` / Wallet backend | High | `limit-order buy` on bStocks fails with "Raw limit orders are not supported. (2)"; undocumented |
 | 33 | 2026-09-29 | `baw` | Medium | bStocks balances differ between `wallet balance`, `balanceOf` and `Transfer` amounts |
+| 34 | 2026-09-29 | `baw` | High | `x402-payment preview` marks a Permit2 option `READY_TO_SIGN` while `needApproveFirst` is true |
+| 35 | 2026-09-29 | `baw` | Medium | `x402-payment preview` indices are 1-based and reordered by balance, not the server's `accepts` order |
+| 36 | 2026-09-29 | `baw` | High | `x402-payment sign` can send an on-chain Permit2 approval; neither `--help` nor the docs say so |
+| 37 | 2026-09-29 | Agent Studio | High | The BNB Stock Agent rejects valid Agentic Wallet U payments with a bare `payment_rejected` |
+| 38 | 2026-09-29 | x402 sellers | Medium | `PAYMENT-RESPONSE` has a different shape per seller; CoinMarketCap's carries no transaction hash |
 
 ---
 
@@ -303,7 +308,7 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 
 - **Repro:** the swap above printed `{"orderId": "26092900001925734301"}`. `baw market-order list --orderId 26092900001925734301` returned an empty list; `baw market-order list --fromToken <AAPLB> --toToken <USDT>` showed the order as `26092900001925734302`, `status: "FINISHED"`, with its `txHash`. It happened again on the next sell: swap `…744435`, list `…744436` (receipts `receipts/exec/2026-09-29T17-05-48-637Z-exec-AAPLB.json` and `…17-11-17-799Z-exec-NVDAB.json`).
 - **Expected:** the swap returns the id that `list --orderId` finds, plus an initial status.
-- **Actual:** an agent polling by the returned id never sees its order and times out, even though it filled within seconds. Our first live sell was recorded as `PENDING / ORDER_TIMEOUT` for this reason. We now fall back to listing by pair from 2 minutes before the swap and matching `fromTokenQty`, keep the swap's id in the receipt as `swapResponseOrderId`, and added `gap reconcile` to settle an order after the fact from its transaction's `Transfer` logs. Both ids are 20-digit integers, which is also above 2^53 (see #28).
+- **Actual:** an agent polling by the returned id never sees its order and times out, even though it filled within seconds. Our first live sell was recorded as `PENDING / ORDER_TIMEOUT` for this reason. We now fall back to listing by pair from 2 minutes before the swap and matching `fromTokenQty`, keep the swap's id in the receipt as `swapResponseOrderId`, and added `gap reconcile` to settle an order after the fact from its transaction's `Transfer` logs. Both ids are 20-digit integers, which is also above 2^53 (see #28). The offset isn't fixed: a USDT to U conversion at 17:38 UTC returned `…798814` and was stored as `…798915`, 101 apart (receipt `receipts/exec/2026-09-29T17-38-50-503Z-fund-USDTU.json`), so a client can't simply add one.
 - **Suggested fix:** return the stored order id as a string, with `status` and, once known, `txHash`.
 
 ## 32. `limit-order buy` on bStocks fails with "Raw limit orders are not supported. (2)"; undocumented
@@ -319,3 +324,38 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 - **Expected:** one balance per token, or documentation of how the token's accounting scales.
 - **Actual:** the three figures differ by a factor of about 1.0006 each. A sell sized from `wallet balance` asks for more than the wallet holds on chain. We size every sell from `balanceOf`, read the real amount sold from the `Transfer` log, and price per share from the `Transfer` amount. The fill then matches the quote to within 0.0001%.
 - **Suggested fix:** have `wallet balance` report the on-chain `balanceOf`, and document the bStocks token's scaling (it looks like a rebasing or share-index token) so clients know which figure a transfer will use.
+
+## 34. `x402-payment preview` marks a Permit2 option `READY_TO_SIGN` while `needApproveFirst` is true
+
+- **Repro:** `baw x402-payment preview --paymentRequirements <PAYMENT-REQUIRED header of POST https://stock-agent.bnbchain.org/x402/analyze/async>` (baw 1.10.0, 2026-09-29), wallet holding USDT but no Permit2 allowance. Recorded in `packages/core/test/fixtures/x402.json`.
+- **Expected:** an option that can't be paid yet is `ACTION_REQUIRED`, as U, USD1 and USDC are when the balance is short.
+- **Actual:** USDT comes back `status: "READY_TO_SIGN"`, `reasons: []`, `needApproveFirst: true`. The campaign docs (line 7576 of `llms-full.txt`) tell agents to "select the READY_TO_SIGN option", and two lines later say USDC/USDT "require a one-time Permit2 allowance; without it set, the first payment fails". An agent following the docs picks USDT. We ignore `status` alone: an option is payable only if it is `READY_TO_SIGN` and `needApproveFirst` is false (or it is `eip3009`), and its `originalAccept` matches one of the server's `accepts` exactly.
+- **Suggested fix:** return `ACTION_REQUIRED` with a reason such as `PERMIT2_ALLOWANCE_REQUIRED` while an approval is needed, or a separate `READY_AFTER_APPROVAL` status.
+
+## 35. `x402-payment preview` indices are 1-based and reordered by balance
+
+- **Repro:** the Stock Agent's 402 lists `accepts` as U, USD1, USDC, USDT. With only USDT in the wallet, the preview numbered them 1 USDT, 2 U, 3 USD1, 4 USDC. After converting 0.6 USDT to U, the same 402 previewed as 1 U, 2 USDT, 3 USD1, 4 USDC (receipts in `receipts/x402/`).
+- **Expected:** the index is documented, and either it follows `accepts` or the docs say it doesn't.
+- **Actual:** `--selectedIndex` is 1-based, while the rest of the payload is JSON arrays counted from 0. The order follows the wallet's balances, so it changes between previews. `--help` only says "index returned by x402-payment preview". A client that maps `accepts[i]` to `i` or `i + 1` signs the wrong token. We always sign with the `index` field of the option we picked from the same `paymentId`, and match that option's `originalAccept` against the server's `accepts`.
+- **Suggested fix:** document that indices are 1-based and ranked, or accept the `originalAccept` (or its position in `accepts`) as the selector.
+
+## 36. `x402-payment sign` can send an on-chain Permit2 approval; neither `--help` nor the docs say so
+
+- **Repro:** read `baw x402-payment sign --help` (baw 1.10.0): "Sign a selected x402 payment option and return the replay header value". The CLI's own output code (`dist/index.js`) prints `approve txHash:` and `binanceChainId:` when the sign response has `approveTxHash`, so signing a Permit2 option can broadcast an approval transaction as a side effect.
+- **Expected:** signing is off-chain. Any on-chain approval is a separate, explicit step with its own spender and amount shown, like `contract-call preview`.
+- **Actual:** the only hint is the extra output fields. Nothing says which spender is approved, for how much, or that gas is spent. We didn't trigger it: the desk refuses any option that needs an approval, and if a sign response ever carries `approveTxHash` it records `FAILED / UNEXPECTED_APPROVAL` and doesn't replay the payment.
+- **Suggested fix:** document the behaviour; better, return `ACTION_REQUIRED` from `sign` and add an explicit `x402-payment approve` that shows spender, amount and cost.
+
+## 37. The BNB Stock Agent rejects valid Agentic Wallet U payments with a bare `payment_rejected`
+
+- **Repro:** `POST https://stock-agent.bnbchain.org/x402/analyze/async` with `{"symbols":["NVDA"],"analysis_type":"comprehensive"}`, then `baw x402-payment preview` and `sign` on the U `eip3009` option (0.1 U; the wallet held 0.600159 U), then replay with `PAYMENT-SIGNATURE`. Four attempts, 17:39 to 17:48 UTC; receipts `receipts/x402/2026-09-29T17-39-30-667Z-x402-researchNVDA.json` and the three after it.
+- **Expected:** `202 {jobId, jobToken}` and a settled payment, or a reason we can act on.
+- **Actual:** every time, after about 13 s, `402 {"errorCode": "payment_rejected"}` with `PAYMENT-RESPONSE {success: false, transaction: "", payer: <our wallet>, errorReason: "payment_rejected"}`. Nothing was charged. The seller's public source ([`bnb-chain/stockanalyst-agent-demo`](https://github.com/bnb-chain/stockanalyst-agent-demo), `x402_verify.py` and `x402_job_service.py`) shows that answer comes after its own checks pass: `accepted` equal to its requirement, recipient, amount, window and EIP-712 recovery of our address. So B402's verify or settle refused, and the seller drops B402's `invalidReason`. What we ruled out: the U token's on-chain `DOMAIN_SEPARATOR` matches the "United Stables" v1 domain in the 402 and it has `transferWithAuthorization`; waiting 2–3 s past `validAfter` (baw sets it to the signing second, valid 120 s) changed nothing; lowercasing the authorization addresses changed nothing. Two minutes later the same wallet paid CoinMarketCap's x402 endpoint 0.01 U by `eip3009` and settled ([0xf397…d524](https://bscscan.com/tx/0xf3972ad59bf1ed815b241cb769f3df4f2e0cf3f1d1c3d54d73854a5b7f66d524)). So wallet signing works, and the refusal is on the Stock Agent's merchant or facilitator side.
+- **Suggested fix:** pass B402's `invalidReason` or `errorReason` through in the 402 body (it isn't sensitive), and document merchant-side limits (daily budget, payer limits) on the price endpoint.
+
+## 38. `PAYMENT-RESPONSE` has a different shape per seller; CoinMarketCap's carries no transaction hash
+
+- **Repro:** compare the settlement headers in `receipts/x402/`. The Stock Agent sends `{success, transaction, network, payer, errorReason}` (x402 V2 `SettlementResponse`). CoinMarketCap (`https://mcp.coinmarketcap.com/x402/mcp`, `tools/call get_global_metrics_latest`, 17:50 UTC) sent `{x402Version, x402FlowId, resource: "X402_get_global_metrics_latest", status: "settled"}`.
+- **Expected:** every B402 seller returns the V2 `SettlementResponse` with the transaction hash, so a buyer can prove what it paid.
+- **Actual:** there's no `success` and no `transaction`. We read `status: "settled"` as success and found the settlement by scanning U `Transfer` logs from our wallet (0.01 U to `0x3C5f…3eeA` in [0xf397…d524](https://bscscan.com/tx/0xf3972ad59bf1ed815b241cb769f3df4f2e0cf3f1d1c3d54d73854a5b7f66d524)). That block is timestamped 17:50:52, after the `200` arrived at 17:50:51.6, so "settled" was sent before the transfer was mined. The data itself arrives as SSE, in `data:` → `result.content[0].text`, which holds a second JSON document.
+- **Suggested fix:** require the standard `SettlementResponse` (with `transaction`) from B402 merchants, or have B402 expose a lookup by `x402FlowId`.

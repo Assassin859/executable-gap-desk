@@ -18,3 +18,5 @@ export * from "./execute";
 export * from "./marketOrder";
 export * from "./positions";
 export * from "./targets";
+export * from "./x402";
+export * from "./research";

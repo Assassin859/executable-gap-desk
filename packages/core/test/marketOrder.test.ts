@@ -8,6 +8,8 @@ import {
   DEFAULT_POLICY,
   NATIVE_BNB,
   USDT_BSC,
+  U_BSC,
+  convertStable,
   evaluateVenue,
   executeMarketOrder,
   executeTrade,
@@ -290,5 +292,52 @@ describe("executeMarketOrder: buys and the daily cap", () => {
     expect(buy.receipt.refusal!.code).toBe("DAILY_CAP");
     const sell = await executeMarketOrder("AAPLB", { side: "sell", all: true, live: true, env, deps: fakeDeps(), receiptsDir: dir });
     expect(sell.receipt.outcome).toBe("FILLED");
+  });
+});
+
+describe("convertStable", () => {
+  const PAID = 600_000_000_000_000_000n;
+  const GOT = 600_300_000_000_000_000n;
+  function stableDeps(o: { rate?: number } = {}) {
+    const deps = fakeDeps();
+    deps.wallet.quote = vi.fn(async (p) => ({ fromCoinSymbol: "USDT", toCoinSymbol: "U", slippage: 0.01, fromCoinAmount: p.qty, toCoinAmount: (Number(p.qty) * (o.rate ?? 1.0008)).toFixed(18) }));
+    deps.chain.balance = vi.fn(async (token: string) => (token === NATIVE_BNB ? 1_030_000_000_000_000n : token === USDT_BSC ? 2_485_000_000_000_000_000n : 0n));
+    deps.chain.waitForReceipt = vi.fn(async (hash: string) =>
+      ({
+        transactionHash: hash,
+        status: "success",
+        blockNumber: 7n,
+        gasUsed: 120_000n,
+        effectiveGasPrice: 100_000_000n,
+        to: POOL,
+        logs: [transferLog(USDT_BSC, W, POOL, PAID), transferLog(U_BSC, POOL, W, GOT)],
+      }) as unknown as TransactionReceipt,
+    );
+    return deps;
+  }
+
+  it("refuses anything but USDT, U and USD1, and a quote off 1:1", async () => {
+    const bad = await convertStable({ from: "USDT", to: "AAPLB", qty: "1", env, deps: stableDeps(), receiptsDir: null });
+    expect(bad.receipt).toMatchObject({ outcome: "REFUSED", kind: "funding", refusal: { code: "NOT_A_STABLE" } });
+    const depeg = await convertStable({ from: "USDT", to: "U", qty: "0.6", live: true, env, deps: stableDeps({ rate: 0.99 }), receiptsDir: null });
+    expect(depeg.receipt.refusal!.code).toBe("STABLE_DEPEG");
+  });
+
+  it("dry run checks the wallet quote and sends nothing", async () => {
+    const deps = stableDeps();
+    const { receipt } = await convertStable({ from: "usdt", to: "u", qty: "0.6", env, deps, receiptsDir: null });
+    expect(receipt).toMatchObject({ outcome: "SIMULATED", symbol: "USDT-U", via: "market-order", usd: 0.6 });
+    expect(deps.wallet.quote).toHaveBeenCalledWith({ fromToken: USDT_BSC, toToken: U_BSC, qty: "0.6", slippage: 0.5 });
+    expect(deps.wallet.swap).not.toHaveBeenCalled();
+  });
+
+  it("live converts, polls the order and reads both legs from the Transfer logs", async () => {
+    const deps = stableDeps();
+    const { receipt } = await convertStable({ from: "USDT", to: "U", qty: "0.6", live: true, env, deps, receiptsDir: null });
+    expect(receipt.outcome).toBe("FILLED");
+    expect(deps.wallet.swap).toHaveBeenCalledWith({ fromToken: USDT_BSC, toToken: U_BSC, qty: "0.6", slippage: 0.5 });
+    expect(receipt.fill).toMatchObject({ tokensOut: 0.6003, usdSpent: 0.6, source: "transfer-logs" });
+    expect(receipt.swap!.txHash).toBe(HASH);
+    expect(spentTodayUsd([receipt], NOW)).toBe(0);
   });
 });

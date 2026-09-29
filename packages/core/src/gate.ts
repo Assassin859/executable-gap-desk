@@ -33,6 +33,10 @@ export const PolicySchema = z
     maxWalletQuoteDeviationPct: frac,
     /** Execution only: how long to poll a market order before recording it as PENDING. */
     marketOrderTimeoutSec: z.number().positive(),
+    /** Execution only: USD paid for x402 calls per UTC day, summed from `receipts/x402/`. */
+    maxDailyX402Usd: z.number().positive(),
+    /** Execution only: the most a single x402 call may cost. */
+    x402MaxPerCallUsd: z.number().positive(),
   })
   .refine((p) => p.goMaxGapPct < p.cautionMaxGapPct, { message: "goMaxGapPct must be below cautionMaxGapPct" });
 export type Policy = z.infer<typeof PolicySchema>;

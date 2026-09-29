@@ -6,6 +6,7 @@ coverage/
 .env.*.local
 receipts/*
 !receipts/exec/
+!receipts/x402/
 *.log
 .DS_Store
 .vercel/

@@ -20,9 +20,22 @@ import {
   DEFAULT_DISCOUNT_PCT,
   buildPositions,
   cancelTarget,
+  convertStable,
   defaultExecDeps,
   defaultMarketDeps,
   defaultTargetDeps,
+  defaultX402Deps,
+  findResearchJob,
+  listX402Receipts,
+  pollResearch,
+  readResearchJob,
+  researchPrice,
+  spentX402TodayUsd,
+  submitResearch,
+  x402Fetch,
+  type ResearchJob,
+  type X402Outcome,
+  type X402Receipt,
   executeMarketOrder,
   executeTrade,
   listTargets,
@@ -440,7 +453,7 @@ const OUTCOME_BADGE: Record<Outcome, string> = {
 };
 
 const receiptTitle = (r: ExecReceipt) => {
-  if (r.kind === "funding") return "BNB -> USDT funding";
+  if (r.kind === "funding") return r.via === "market-order" ? `${r.symbol.replace("-", " -> ")} conversion  ${r.usd}` : "BNB -> USDT funding";
   if (r.kind === "limit") return r.outcome === "CANCELED" || r.symbol.startsWith("cancel-") ? `cancel limit ${r.order?.id ?? ""} ${r.symbol.startsWith("cancel-") ? "" : r.symbol}`.trim() : `limit buy ${r.symbol}  $${r.usd}`;
   const side = r.side === "sell" ? "SELL" : "BUY";
   return `${side} ${r.symbol}  $${r.usd}${r.via ? pc.dim(` via ${r.via}`) : ""}`;
@@ -478,7 +491,10 @@ function printReceipt(r: ExecReceipt, path: string | null) {
     const verb = r.side === "sell" ? "sell" : "buy";
     console.log(`  quote       ${verb} ${r.quote.tokensOut.toPrecision(6)} tokens at ${usd(r.quote.fillPerShare)}/share  ${pc.dim(`${r.quote.executionMode} / ${r.quote.vendorName}, ${r.quote.route.join(" > ")}`)}`);
   }
-  if (r.walletQuote) {
+  if (r.walletQuote && r.kind === "funding") {
+    const w = r.walletQuote;
+    console.log(`  wallet      ${w.fromQty} -> ${w.toQty}  ${pc.dim(`${pct(w.deviationPct)} vs 1:1`)}`);
+  } else if (r.walletQuote) {
     const w = r.walletQuote;
     console.log(`  wallet      ${w.fromQty} -> ${w.toQty} = ${usd(w.fillPerShare)}/share  ${pc.dim(`${pct(w.deviationPct)} vs the gated quote, ${pct(w.gapPct)} vs the stock`)}`);
   }
@@ -507,7 +523,10 @@ function printReceipt(r: ExecReceipt, path: string | null) {
     const what = r.side === "sell" ? `sold ${f.tokensOut.toPrecision(6)} ${r.symbol} for ${(f.usdReceived ?? 0).toFixed(4)} USDT` : `${f.tokensOut.toPrecision(6)} ${r.symbol} for ${f.usdSpent.toFixed(4)} USDT`;
     console.log(`  fill        ${what} = ${usd(f.fillPerShare)}/share  quoted ${usd(f.quotedFillPerShare)}  realized vs quoted ${pct(f.realizedVsQuotedPct)}  vs stock ${pct(f.realizedGapPct)}${f.source === "balance-change" ? pc.dim("  (from balance change)") : ""}`);
   }
-  if (r.fill && r.kind === "funding") console.log(`  received    ${r.fill.tokensOut.toFixed(4)} USDT`);
+  if (r.fill && r.kind === "funding") {
+    const [from, to] = r.via === "market-order" ? r.symbol.split("-") : ["BNB", "USDT"];
+    console.log(`  received    ${r.fill.tokensOut.toFixed(6)} ${to}${r.via === "market-order" ? pc.dim(` for ${r.fill.usdSpent.toFixed(6)} ${from}`) : ""}`);
+  }
   if (path) console.log(pc.dim(`  receipt     ${relative(repoRoot, path)}`));
 }
 
@@ -697,25 +716,198 @@ program
     console.log(table.toString());
   });
 
+const x402Dir = resolvePath(repoRoot, "receipts", "x402");
+const researchDir = resolvePath(repoRoot, "receipts", "research");
+
+const X402_BADGE: Record<X402Outcome, string> = {
+  PAID: pc.bgGreen(pc.black(" PAID ")),
+  SIMULATED: pc.bgCyan(pc.black(" SIMULATED, NOT SIGNED ")),
+  REFUSED: pc.bgRed(pc.white(pc.bold(" REFUSED "))),
+  FAILED: pc.bgRed(pc.white(pc.bold(" FAILED "))),
+  PENDING: pc.bgYellow(pc.black(" PENDING ")),
+};
+
+const x402Deps = (yes?: boolean) => ({ ...defaultX402Deps(), confirm: (s: string) => promptConfirm(s, yes === true), log: stepLog });
+
+function printX402(r: X402Receipt, path: string | null) {
+  console.log();
+  console.log(`${X402_BADGE[r.outcome]} ${pc.bold(`x402 ${r.label}`)} ${pc.dim(`(${r.mode})`)}`);
+  if (r.refusal) console.log(`  ${pc.red(`${r.refusal.code}: ${r.refusal.message}`)}`);
+  console.log(`  resource    ${r.resource?.description ?? r.url}  ${pc.dim(`${r.method} ${r.url}`)}`);
+  for (const o of r.options) {
+    const chosen = r.option?.index === o.index;
+    const note = [o.status, ...o.reasons, o.needApproveFirst ? "needs approval" : ""].filter(Boolean).join(", ");
+    console.log(`  ${chosen ? pc.cyan("option  *") : "option   "}  ${String(o.index).padStart(2)} ${o.amount} ${o.token.padEnd(5)} ${pc.dim(`${o.method}; ${note}`)}`);
+  }
+  if (r.option) console.log(`  pay         ${r.option.amount} ${r.option.token} ${pc.dim(`(about $${r.option.amountUsd.toFixed(4)}, ${r.option.method}) to ${r.option.payTo}`)}`);
+  if (r.signed) console.log(`  signed      ${r.signed.headerName}${r.signed.expiresAt ? pc.dim(`, valid until ${r.signed.expiresAt}`) : ""}${r.signed.approveTxHash ? pc.red(`  approval tx ${r.signed.approveTxHash}`) : ""}`);
+  const proof = r.signed?.proof;
+  if (proof) {
+    const a = proof.authorization;
+    const window = a?.validBefore ? `valid ${a.validAfter ?? "?"} to ${a.validBefore ?? a.deadline}` : a?.deadline ? `deadline ${a.deadline}` : "no authorization";
+    console.log(`  proof       ${proof.acceptedMatches ? "accepted = server requirement" : pc.red("accepted differs from the server requirement")}  ${pc.dim(`${window}, from ${a?.from ?? "?"}`)}`);
+  }
+  if (r.settlement) {
+    const s = r.settlement;
+    console.log(`  settlement  ${s.success === false ? pc.red("failed") : pc.green(s.success ? "settled" : "reported")} ${s.bscscan ? pc.cyan(s.bscscan) : (s.transaction ?? "")}${s.errorReason ? pc.red(`  ${s.errorReason}`) : ""}`);
+  }
+  if (r.httpStatus !== null) console.log(`  http        ${r.httpStatus}`);
+  if (path) console.log(pc.dim(`  receipt     ${relative(repoRoot, path)}`));
+}
+
+function printResearch(job: ResearchJob, jobPath: string | null) {
+  console.log();
+  const status = job.status === "succeeded" ? pc.green(job.status) : job.error ? pc.yellow(job.status) : job.status;
+  console.log(`${pc.bold(`Research ${job.symbols.join(", ")}`)}  ${status}  ${pc.dim(`${job.polls} polls`)}`);
+  if (job.error) console.log(`  ${pc.yellow(job.error)}`);
+  if (job.paid) console.log(`  paid        ${job.paid.amount} ${job.paid.token}${job.paid.settlementTx ? pc.dim(`  ${job.paid.settlementTx}`) : ""}`);
+  const s = job.summary;
+  if (s) {
+    console.log(`  rating      ${s.rating ? pc.bold(s.rating) : pc.dim("not found in the report")}`);
+    console.log(`  target      ${s.targetPriceUsd !== null ? usd(s.targetPriceUsd) : pc.dim("not found")}${s.upsidePct !== null ? pc.dim(`  (${s.upsidePct >= 0 ? "+" : ""}${s.upsidePct}% stated)`) : ""}`);
+    s.risks.forEach((x, i) => console.log(`  ${i === 0 ? "risks      " : "           "} ${i + 1}. ${x}`));
+  }
+  if (job.reportFile) console.log(`  report      ${relative(repoRoot, resolvePath(researchDir, job.reportFile))}`);
+  if (jobPath) console.log(pc.dim(`  job         ${relative(repoRoot, jobPath)}`));
+}
+
+async function printGateFor(tickers: string[], target: number | null) {
+  for (const t of tickers) {
+    try {
+      const card = await checkTicker(t, { usd: 25 });
+      const best = card.bestVenue;
+      const vsTarget = target && card.reference ? pc.dim(`  report target ${pct(target / card.reference - 1)} vs the stock`) : "";
+      console.log(
+        `  gate ${pc.bold(t)}   stock ${usd(card.reference)}  ` +
+          card.venues.map((v) => `${v.symbol} ${VERDICT_SHORT[v.verdict](v.verdict)}`).join(pc.dim(" · ")) +
+          (best ? `  ${pc.dim("best")} ${pc.cyan(best.symbol)} ${pct(best.executableGapPct)}` : `  ${pc.red("no safe venue")}`) +
+          vsTarget,
+      );
+    } catch (err) {
+      console.log(pc.dim(`  gate ${t}: unavailable (${err instanceof Error ? err.message : String(err)})`));
+    }
+  }
+}
+
+program
+  .command("research")
+  .description("Paid Agent Studio stock report over x402 (about 0.1 U), shown next to the gate. Dry run unless --live.")
+  .argument("[symbols...]", "tickers, e.g. NVDA")
+  .option("--resume <job>", "poll a saved job (file id, path or jobId) without paying again")
+  .option("--live", "sign the x402 payment with the Agentic Wallet (default: dry run)")
+  .option("--yes", "skip the typed confirmation (only with --live)")
+  .option("--no-gate", "do not re-check the gate for the tickers")
+  .option("--json", "print the job JSON")
+  .action(async (symbols: string[], opts: { resume?: string; live?: boolean; yes?: boolean; gate: boolean; json?: boolean }) => {
+    let job: ResearchJob;
+    let jobPath: string | null;
+    if (opts.resume) {
+      if (symbols.length) throw new Error("--resume takes no tickers.");
+      const direct = resolvePath(opts.resume);
+      jobPath = opts.resume.endsWith(".json") && existsSync(direct) ? direct : findResearchJob(researchDir, opts.resume);
+      job = readResearchJob(jobPath);
+    } else {
+      if (!symbols.length) throw new Error("Give a ticker, e.g. gap research NVDA.");
+      const live = liveFlag(opts);
+      const price = await researchPrice().catch(() => null);
+      const spent = spentX402TodayUsd(listX402Receipts(x402Dir), Date.now());
+      console.log(
+        `Agent Studio research: ${price?.price_u ?? "?"} U per call` +
+          pc.dim(`  | x402 spend today $${spent.toFixed(2)} of $${DEFAULT_POLICY.maxDailyX402Usd}, per-call cap $${DEFAULT_POLICY.x402MaxPerCallUsd}`),
+      );
+      const res = await submitResearch(symbols, { live, researchDir, x402Dir, deps: x402Deps(opts.yes) });
+      if (res.receipt) printX402(res.receipt, res.x402Path);
+      if (!res.job) {
+        if (res.receipt?.outcome === "SIMULATED") console.log(pc.dim("\nDry run: nothing signed. Pass --live to pay and submit the job."));
+        else process.exitCode = 1;
+        return;
+      }
+      job = res.job;
+      jobPath = res.jobPath;
+      if (jobPath) console.log(`  job saved   ${relative(repoRoot, jobPath)}  ${pc.dim("(jobId and jobToken, before polling)")}`);
+    }
+    if (job.jobToken && job.jobId) {
+      console.log(pc.dim("Polling the job every 15 s (reports usually take 2-5 minutes)..."));
+      job = (await pollResearch(job, { researchDir, deps: { log: stepLog } })).job;
+    }
+    if (opts.json) console.log(JSON.stringify(job, null, 2));
+    else {
+      printResearch(job, jobPath);
+      if (opts.gate) await printGateFor(job.symbols, job.summary?.targetPriceUsd ?? null);
+      console.log(pc.dim("Third-party analysis, for reference only; the gate decides whether a venue is tradeable."));
+    }
+    if (job.status !== "succeeded") process.exitCode = 1;
+  });
+
+program
+  .command("x402")
+  .description("Generic x402 paid fetch through the Agentic Wallet, with the same caps and receipts. Dry run unless --live.")
+  .argument("<url>", "https URL")
+  .option("--method <method>", "GET or POST", "GET")
+  .option("--data <json>", "JSON request body")
+  .option("--header <k:v>", "extra request header (repeatable)", (v: string, acc: string[]) => [...acc, v], [] as string[])
+  .option("--out <file>", "write the response body to a file")
+  .option("--live", "sign the x402 payment (default: dry run)")
+  .option("--yes", "skip the typed confirmation (only with --live)")
+  .option("--json", "print the receipt JSON")
+  .action(async (url: string, opts: { method: string; data?: string; header: string[]; out?: string; live?: boolean; yes?: boolean; json?: boolean }) => {
+    const u = new URL(url);
+    if (u.protocol !== "https:") throw new Error("Only https URLs are paid for.");
+    const method = opts.method.toUpperCase();
+    if (method !== "GET" && method !== "POST") throw new Error(`--method must be GET or POST, got ${opts.method}.`);
+    const live = liveFlag(opts);
+    const headers: Record<string, string> = {};
+    for (const h of opts.header) {
+      const i = h.indexOf(":");
+      if (i < 1) throw new Error(`--header must look like Name: value, got ${h}.`);
+      headers[h.slice(0, i).trim()] = h.slice(i + 1).trim();
+    }
+    if (opts.data !== undefined) {
+      JSON.parse(opts.data);
+      if (!Object.keys(headers).some((k) => k.toLowerCase() === "content-type")) headers["Content-Type"] = "application/json";
+    }
+    const { res, receipt, path } = await x402Fetch(url, { method, headers, body: opts.data }, { label: `${u.hostname}${u.pathname}`, live, receiptsDir: x402Dir, deps: x402Deps(opts.yes) });
+    if (receipt) {
+      if (opts.json) console.log(JSON.stringify(receipt, null, 2));
+      else printX402(receipt, path);
+    } else console.log(pc.dim(`HTTP ${res.status}: the server asked for no payment.`));
+    if (res.ok) {
+      const text = await res.text();
+      if (opts.out) {
+        writeFileSync(opts.out, text);
+        console.log(pc.dim(`wrote ${text.length} characters to ${opts.out}`));
+      } else if (!opts.json) console.log(`\n${text.slice(0, 4000)}${text.length > 4000 ? pc.dim(`\n... ${text.length - 4000} more characters (use --out)`) : ""}`);
+    }
+    if (receipt ? !["PAID", "SIMULATED"].includes(receipt.outcome) : !res.ok) process.exitCode = 1;
+  });
+
 program
   .command("fund")
-  .description("One-off: convert native BNB to USDT through the same simulate + Agentic Wallet path (not gated)")
-  .requiredOption("--bnb <amount>", "BNB to convert; at least 0.001 BNB is always kept for gas")
+  .description("Convert BNB to USDT (router tx), or between stablecoins USDT / U / USD1 (wallet market order, 1:1 within 0.5%)")
+  .option("--bnb <amount>", "BNB to convert to USDT; at least 0.001 BNB is always kept for gas")
+  .option("--from <stable>", "stablecoin to convert from: USDT, U or USD1")
+  .option("--to <stable>", "stablecoin to convert to: USDT, U or USD1")
+  .option("--qty <amount>", "with --from/--to: amount of the from-token")
   .option("--live", "sign and broadcast (default: dry run)")
   .option("--yes", "skip the typed confirmation (only with --live)")
   .option("--json", "print the receipt JSON")
-  .action(async (opts: { bnb: string; live?: boolean; yes?: boolean; json?: boolean }) => {
-    if (opts.yes && !opts.live) throw new Error("--yes only applies with --live.");
-    const live = opts.live === true && process.env.DRY_RUN !== "1";
+  .action(async (opts: { bnb?: string; from?: string; to?: string; qty?: string; live?: boolean; yes?: boolean; json?: boolean }) => {
+    const live = liveFlag(opts);
+    const confirm = (s: string) => promptConfirm(s, opts.yes === true);
+    const stable = opts.from !== undefined || opts.to !== undefined || opts.qty !== undefined;
+    if (stable === (opts.bnb !== undefined)) throw new Error("Give either --bnb, or --from, --to and --qty.");
+    if (stable) {
+      if (!opts.from || !opts.to || !opts.qty) throw new Error("--from, --to and --qty go together.");
+      const { receipt, path } = await convertStable({ from: opts.from, to: opts.to, qty: opts.qty, live, receiptsDir, deps: { ...defaultMarketDeps(), confirm, log: stepLog } });
+      return finishCli(receipt, path, opts.json);
+    }
     const { receipt, path } = await fundUsdt({
       bnb: Number(opts.bnb),
       live,
       receiptsDir,
-      deps: { ...defaultExecDeps(), confirm: (s) => promptConfirm(s, opts.yes === true), log: stepLog },
+      deps: { ...defaultExecDeps(), confirm, log: stepLog },
     });
-    if (opts.json) console.log(JSON.stringify(receipt, null, 2));
-    else printReceipt(receipt, path);
-    if (receipt.outcome !== "FILLED" && receipt.outcome !== "SIMULATED") process.exitCode = 1;
+    finishCli(receipt, path, opts.json);
   });
 
 program
@@ -737,7 +929,9 @@ program
       table.push([
         r.createdAt.slice(0, 19).replace("T", " "),
         r.kind === "funding"
-          ? `fund $${r.usd} USDT`
+          ? r.via === "market-order"
+            ? `convert ${r.usd} ${r.symbol.replace("-", ">")}`
+            : `fund $${r.usd} USDT`
           : r.kind === "limit"
             ? `${r.outcome === "CANCELED" || r.symbol.startsWith("cancel-") ? "cancel" : "limit"} ${r.symbol.replace(/^cancel-/, "")} $${r.usd}`
             : `${r.side === "sell" ? "sell" : "buy"} ${r.symbol} $${r.usd}${r.via === "market-order" ? pc.dim(" mkt") : ""}`,
@@ -751,6 +945,22 @@ program
     }
     console.log(table.toString());
     console.log(pc.dim(`Live USDT spent on fills today: $${spentTodayUsd(all, Date.now()).toFixed(2)} of $${DEFAULT_POLICY.maxDailySpendUsd}.`));
+
+    const paid = listX402Receipts(x402Dir);
+    if (!paid.length) return;
+    const t402 = new Table({ head: ["Time (UTC)", "x402 call", "Mode", "Outcome", "Paid", "Settlement or reason"] });
+    for (const r of paid) {
+      t402.push([
+        r.createdAt.slice(0, 19).replace("T", " "),
+        r.label,
+        r.mode,
+        X402_BADGE[r.outcome],
+        r.option ? `${r.option.amount} ${r.option.token}` : pc.dim("-"),
+        r.settlement?.transaction ? pc.cyan(r.settlement.transaction.slice(0, 18) + "…") : r.refusal ? pc.red(r.refusal.code) : pc.dim("-"),
+      ]);
+    }
+    console.log(t402.toString());
+    console.log(pc.dim(`x402 paid today: $${spentX402TodayUsd(paid, Date.now()).toFixed(4)} of $${DEFAULT_POLICY.maxDailyX402Usd}.`));
   });
 
 program

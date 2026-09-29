@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "id": "2026-09-29T17-38-50-503Z-fund-USDTU",
+  "kind": "funding",
+  "createdAt": "2026-09-29T17:38:50.503Z",
+  "mode": "live",
+  "outcome": "FILLED",
+  "refusal": null,
+  "symbol": "USDT-U",
+  "venue": null,
+  "usd": 0.6,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": null,
+  "quote": null,
+  "balances": {
+    "usdt": "2485244918494677312",
+    "bnb": "1033380578645114",
+    "allowance": "0",
+    "token": "0"
+  },
+  "approval": null,
+  "swap": {
+    "to": "0xb300000b72deaeb607a12d5f54773d1c19c7028d",
+    "value": "0",
+    "txHash": "0x7c873cd0474fb61a72bf723cac8a2b8fb2df05ba05b18e9848378b52ada59702",
+    "bscscan": "https://bscscan.com/tx/0x7c873cd0474fb61a72bf723cac8a2b8fb2df05ba05b18e9848378b52ada59702",
+    "blockNumber": "124758038",
+    "gasUsed": "854960",
+    "gasCostBnb": 0.0000664598154484,
+    "minReceiveAmount": null,
+    "slippagePct": 0.5,
+    "gas": null,
+    "gasPrice": null,
+    "worstCaseGapPct": null
+  },
+  "simulation": null,
+  "fill": {
+    "tokensOut": 0.6001590838209094,
+    "usdSpent": 0.6,
+    "source": "transfer-logs",
+    "fillPerShare": 1.0002651397015159,
+    "quotedFillPerShare": 1.0002833070397326,
+    "realizedVsQuotedPct": -0.00001816219273964581,
+    "realizedGapPct": 0.00026513970151587074
+  },
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T17:38:50.504Z",
+      "step": "wallet quote",
+      "detail": "0.6 USDT to U"
+    },
+    {
+      "at": "2026-09-29T17:38:51.085Z",
+      "step": "wallet quote checked",
+      "detail": "0.600169984223839482 U (+0.03% vs 1:1)"
+    },
+    {
+      "at": "2026-09-29T17:38:52.359Z",
+      "step": "market order: send"
+    },
+    {
+      "at": "2026-09-29T17:38:53.731Z",
+      "step": "market order: accepted",
+      "detail": "order 26092900001925798814 UNKNOWN"
+    },
+    {
+      "at": "2026-09-29T17:38:57.993Z",
+      "step": "market order: finished",
+      "detail": "0x7c873cd0474fb61a72bf723cac8a2b8fb2df05ba05b18e9848378b52ada59702"
+    },
+    {
+      "at": "2026-09-29T17:38:58.954Z",
+      "step": "filled",
+      "detail": "0.600159 U for 0.600000 USDT"
+    }
+  ],
+  "via": "market-order",
+  "walletQuote": {
+    "fromQty": "0.6",
+    "toQty": "0.600169984223839482",
+    "fillPerShare": 1.0002833070397326,
+    "deviationPct": 0.000283307039732561,
+    "gapPct": null
+  },
+  "order": {
+    "id": "26092900001925798915",
+    "status": "FINISHED",
+    "raw": {
+      "orderType": "market",
+      "orderId": "26092900001925798915",
+      "chain": "56",
+      "fromToken": "0x55d398326f99059fF775485246999027B3197955",
+      "fromTokenName": "USDT",
+      "fromTokenQty": "0.600000000000000000",
+      "toToken": "0xcE24439F2D9C6a2289F741120FE202248B666666",
+      "toTokenName": "U",
+      "toTokenActualQty": "0.600159083820909383",
+      "status": "FINISHED",
+      "slippage": "0.5000",
+      "txHash": "0x7c873cd0474fb61a72bf723cac8a2b8fb2df05ba05b18e9848378b52ada59702",
+      "bookTime": "2026-09-29T23:08:53+05:30",
+      "updatedTime": "2026-09-29T23:08:54+05:30",
+      "swapResponseOrderId": "26092900001925798814"
+    }
+  }
+}

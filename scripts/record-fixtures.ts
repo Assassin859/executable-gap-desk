@@ -6,6 +6,7 @@
  *                                   record during the US regular session)
  *   pnpm record-fixtures --trade    approve / swap / simulate build responses (no signing, no broadcast)
  *   pnpm record-fixtures --sell     token to USDT quotes for the wallet's AAPLB and NVDAB holdings
+ *   pnpm record-fixtures --x402     Agent Studio research price, unpaid 402 and baw x402 preview (no signing)
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -32,8 +33,10 @@ import {
   signedGet,
   signedPost,
   simulateBody,
+  STOCK_AGENT_URL,
   swapPath,
   usdToBaseUnits,
+  x402Preview,
 } from "../packages/core/src/index";
 
 const TICKERS = new Set(["AAPL", "NVDA", "MSTR", "SPY"]);
@@ -184,9 +187,30 @@ async function recordSell() {
   save("sell-quotes.json", { recordedAt: new Date().toISOString(), wallet: "redacted", quotes: redactWallet(out, wallet) });
 }
 
+/** Agent Studio research: the free price, the unpaid 402 and the wallet's preview of it (nothing is signed). */
+async function recordX402() {
+  const envFile = resolve(root, ".env.local");
+  if (existsSync(envFile)) process.loadEnvFile(envFile);
+  const wallet = process.env.GAP_WALLET_ADDRESS;
+  if (!wallet) throw new Error("GAP_WALLET_ADDRESS is not set in .env.local");
+  const price = await (await fetch(`${STOCK_AGENT_URL}/x402/price`)).json();
+  const res = await fetch(`${STOCK_AGENT_URL}/x402/analyze/async`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ symbols: ["NVDA"], analysis_type: "comprehensive" }),
+  });
+  const header = res.headers.get("payment-required");
+  if (res.status !== 402 || !header) throw new Error(`expected a 402 with PAYMENT-REQUIRED, got ${res.status}`);
+  const body = await res.json();
+  const preview = await x402Preview(header);
+  console.log(`402 with ${preview.options.length} options`);
+  save("x402.json", redactWallet({ recordedAt: new Date().toISOString(), price, required: { status: res.status, header, body }, preview }, wallet));
+}
+
 async function main() {
   mkdirSync(outDir, { recursive: true });
-  if (process.argv.includes("--sell")) await recordSell();
+  if (process.argv.includes("--x402")) await recordX402();
+  else if (process.argv.includes("--sell")) await recordSell();
   else if (process.argv.includes("--quotes")) await recordQuotes();
   else if (process.argv.includes("--trade")) await recordTrade();
   else await recordPublic();

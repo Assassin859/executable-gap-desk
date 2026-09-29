@@ -20,7 +20,7 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 | 2 | Executable quotes and the GO / CAUTION / BLOCK gate | done |
 | 3 | Guarded mainnet fills via `baw` with receipts | done |
 | 4 | Web desk: radar, Truth Cards, proof ledger, DX log | done |
-| 5 | Agentic Wallet and BNB Agent Studio integrations: live dashboard (5.1) and gated wallet trading (5.2) done; x402, B402 + ERC-8004, MCP next | in progress |
+| 5 | Agentic Wallet and BNB Agent Studio integrations: live dashboard (5.1), gated wallet trading (5.2) and the x402 buyer (5.3) done; B402 seller + ERC-8004, MCP next | in progress |
 | 6 | Ship: polish, demo, DX report | planned |
 
 ## Quickstart
@@ -105,7 +105,7 @@ The gate is a pure function of the venue data, the quote, the session and [`pack
 
 The best venue for a buy is the cheapest GO, falling back to the cheapest CAUTION; for a sell it is the one that pays the most. A BLOCK venue is never recommended. Exits are gated exactly like entries, so an off-hours sell is refused too.
 
-Execution-only policy fields: `maxDailySpendUsd` (5), `slippagePct` (0.5), `maxLimitOrderUsd` (10, USDT committed per limit buy), `maxWalletQuoteDeviationPct` (0.005: the Agentic Wallet's own market-order quote must be within 0.5% of the gated quote) and `marketOrderTimeoutSec` (180: how long a market order is polled before it is recorded as PENDING).
+Execution-only policy fields: `maxDailySpendUsd` (5), `slippagePct` (0.5), `maxLimitOrderUsd` (10, USDT committed per limit buy), `maxWalletQuoteDeviationPct` (0.005: the Agentic Wallet's own market-order quote must be within 0.5% of the gated quote) `marketOrderTimeoutSec` (180: how long a market order is polled before it is recorded as PENDING), `x402MaxPerCallUsd` (0.25: the most one x402 payment may cost) and `maxDailyX402Usd` (1: x402 payments per UTC day, counting every signed attempt, even one the seller rejected).
 
 ### Guarded execution
 
@@ -115,6 +115,7 @@ Execution-only policy fields: `maxDailySpendUsd` (5), `slippagePct` (0.5), `maxL
 pnpm gap exec NVDAB --usd 1.5            # dry run (the default): gate, build, simulate, write a receipt
 pnpm gap exec NVDAB --usd 1.5 --live     # same, then asks you to type "yes" before each signature
 pnpm gap fund --bnb 0.0033               # one-off BNB -> USDT conversion through the same checks
+pnpm gap fund --from USDT --to U --qty 0.6 --live   # stablecoin conversion (USDT, U, USD1) by wallet market order
 pnpm gap receipts                        # the ledger of every run, plus today's live spend
 ```
 
@@ -149,6 +150,32 @@ pnpm gap reconcile                                              # settle PENDING
 - **`gap positions`** matches wallet tokens to venues, quotes selling each full position and runs the sell gate. `--warn-open` exits with code 3 when the US open is less than 60 minutes away outside the regular session (tokens can gap at the open), or when any exit is BLOCK.
 - **Limit orders** (`gap target`) are placed only when the venue is GO now. The trigger is `stock price × multiplier × (1 − discount)`, so it is never above the stock. It is refused with `TRIGGER_AT_MARKET` if it is at or above the wallet's current price, because it would fill at once. Each order is capped at $10 and counts toward the daily cap until it is cancelled. `gap targets` re-gates every WORKING order and suggests cancelling when the venue has turned BLOCK or its displayed and executable prices disagree. **Live, the Agentic Wallet refused a limit buy on AAPLB** with "Raw limit orders are not supported" ([DX #32](docs/DX_LOG.md#32-limit-order-buy-on-bstocks-fails-with-raw-limit-orders-are-not-supported-2-undocumented)), so the limit path is proven up to the wallet but no order has been placed. A `success: false` answer from the wallet is recorded as `REFUSED / WALLET_REJECTED`.
 - **Order tracking:** `market-order swap` returns an order id one lower than the one the wallet stores, and no status ([DX #31](docs/DX_LOG.md#31-market-order-swap-returns-an-orderid-one-lower-than-the-stored-order-and-no-status)). So the poller falls back to finding the order by pair, time and size. `gap reconcile` settles any receipt left `PENDING` by reading the finished order's transaction.
+
+### Paying for data over x402 (Agentic Wallet)
+
+The desk can buy paid research and data over [x402](https://x402.org) V2, signing through the Agentic Wallet's `baw x402-payment preview` and `sign`, so no key leaves the wallet here either:
+
+```bash
+pnpm gap research NVDA                          # dry run: price, the 402, the wallet's preview, the option it would pay with
+pnpm gap research NVDA --live                   # pay 0.1 U to the BNB Stock Agent, save the job, poll, save the report
+pnpm gap research --resume <jobId|file>         # keep polling a saved job; never pays again
+pnpm gap x402 https://mcp.coinmarketcap.com/x402/mcp --method POST --header "Content-Type: application/json" \
+  --header "Accept: application/json, text/event-stream" --data '<JSON-RPC tools/call>' --out data.txt --live
+pnpm gap fund --from USDT --to U --qty 0.6 --live   # U and USD1 pay by signature alone; USDT needs a Permit2 approval
+pnpm gap receipts                               # x402 payments and today's x402 spend, next to the trades
+```
+
+The flow is: request, get a 402, decode the requirements (base64 `PAYMENT-REQUIRED` header, else the body), `baw x402-payment preview`, pick an option, check the caps, confirm, `sign`, then replay the same request with the returned header. Every attempt writes a receipt to [`receipts/x402/`](receipts/x402/), including refusals and rejected payments. The rails:
+
+- **Only options that need no approval.** An option is payable only if it is `READY_TO_SIGN`, needs no approval (`needApproveFirst` false, or `eip3009`), and its `originalAccept` is identical to one of the server's `accepts`. U by `eip3009` is preferred, then USD1. The wallet marks a Permit2 USDT option `READY_TO_SIGN` even though it still needs an allowance ([DX #34](docs/DX_LOG.md#34-x402-payment-preview-marks-a-permit2-option-ready_to_sign-while-needapprovefirst-is-true)). Its indices are 1-based and reordered by balance ([DX #35](docs/DX_LOG.md#35-x402-payment-preview-indices-are-1-based-and-reordered-by-balance)), so the desk signs with the index of the option it matched, never a position.
+- **Caps:** at most $0.25 per call and $1 per UTC day (`x402MaxPerCallUsd`, `maxDailyX402Usd`). Every signed attempt counts: a seller's "rejected" can't be verified, and the authorization stays valid until it expires.
+- **Confirmation:** a dry run never signs. `--live` shows token, amount, payee and today's spend, then asks for a typed `yes` (or `--yes`). The same kill switch and `DRY_RUN` apply.
+- **No surprise transactions:** if a sign response carries an approval transaction ([DX #36](docs/DX_LOG.md#36-x402-payment-sign-can-send-an-on-chain-permit2-approval-neither---help-nor-the-docs-say-so)), the payment is recorded `FAILED / UNEXPECTED_APPROVAL` and not replayed. The replay header must be `PAYMENT-SIGNATURE` or `X-PAYMENT`, and it waits until the chain is past the authorization's `validAfter`.
+- **Receipts keep no secrets:** the receipt stores the public parts of the signed proof (payer, payee, amount, validity window, whether `accepted` matched), never the signature. A replay that fails in transit is `PENDING / REPLAY_UNKNOWN`, since the authorization may still settle.
+- **Research jobs are saved before polling.** A paid `gap research` writes the job id and job token to `receipts/research/` the moment the seller accepts, then polls every 15 s for up to 10 minutes. It downloads the Markdown report (sending the token only to the seller's own origin), extracts rating, target and risks, and replaces the token with its SHA-256. A timeout leaves the job resumable with `--resume`. There's no list-jobs endpoint and resubmitting pays again, so a lost token means a lost report.
+- **Funding U:** `gap fund --from --to --qty` converts between USDT, U and USD1 through a wallet market order. The wallet's quote must be within 0.5% of 1:1 (`STABLE_DEPEG` otherwise), and the real amounts come from the `Transfer` logs.
+
+**Live on 2026-09-29:** 0.6 USDT became 0.600159 U. A CoinMarketCap `get_global_metrics_latest` call was paid 0.01 U by `eip3009` and returned the macro data ([settlement tx](https://bscscan.com/tx/0xf3972ad59bf1ed815b241cb769f3df4f2e0cf3f1d1c3d54d73854a5b7f66d524)). **The BNB Stock Agent rejected all four 0.1 U research payments** with a bare `payment_rejected`, and nothing was charged. Its public source shows its own checks passed and its B402 facilitator refused, so no report has been bought yet ([DX #37](docs/DX_LOG.md#37-the-bnb-stock-agent-rejects-valid-agentic-wallet-u-payments-with-a-bare-payment_rejected)). The job flow after payment is covered by offline tests only.
 
 ### Web desk
 
@@ -206,6 +233,8 @@ flowchart LR
 - **Chain** (`chain.ts`): viem reads on BSC (balances, allowance, receipts, `Transfer` logs), approve-calldata decoding, and the state-override `eth_call` used for unfunded dry runs.
 - **Wallet** (`baw.ts`): runs `baw contract-call preview/execute` without a shell and parses its JSON (including after its Windows exit crash, DX #13).
 - **Executor** (`execute.ts`): the rails above, `PENDING_CONFIRMATION` polling, and receipts.
+- **Wallet orders** (`marketOrder.ts`, `bawWallet.ts`): gated `baw market-order` / `limit-order` trading and stablecoin conversions, with typed wrappers for the wallet CLI (including `x402-payment preview/sign`).
+- **x402 buyer** (`x402.ts`): 402 decoding, option matching, caps, the sign-and-replay state machine and `receipts/x402/`. **Research** (`research.ts`): paid BNB Stock Agent jobs, saved before polling, with report download and summary.
 - **Public snapshot** (`publicSnapshot.ts`): the slim, JSON-safe shape the web desk ships (no quote ids, routers or raw API bodies).
 - **Web desk** (`apps/web`): Next.js App Router pages over the public snapshot, live checks through `checkTicker`, and the localhost-only execute route.
 
@@ -218,13 +247,14 @@ apps/web/          web desk (Next.js): radar, Truth Cards, proof, DX log, local 
 apps/web/data/     committed public snapshot behind the radar
 scripts/           fixture recorder, web snapshot builder
 receipts/exec/     one JSON receipt per gap exec / gap fund run (fills and refusals)
+receipts/x402/     one JSON receipt per x402 payment attempt (paid, rejected, refused, dry run)
 docs/DX_LOG.md     developer-experience findings
 docs/vendor/       snapshot of the Binance Web3 llms-full.txt docs
 ```
 
 ## Proof ledger
 
-Real BSC mainnet runs of `gap exec` / `gap fund` / `gap target` on 2026-09-29, from the Agentic Wallet [`0x623d…1C65`](https://bscscan.com/address/0x623dF829DF5cf33506a0fbb152dbc885d5b61C65). Every row has a JSON receipt in [`receipts/exec/`](receipts/exec/).
+Real BSC mainnet runs of `gap exec` / `gap fund` / `gap target` / `gap research` / `gap x402` on 2026-09-29, from the Agentic Wallet [`0x623d…1C65`](https://bscscan.com/address/0x623dF829DF5cf33506a0fbb152dbc885d5b61C65). Every row has a JSON receipt in [`receipts/exec/`](receipts/exec/) or [`receipts/x402/`](receipts/x402/).
 
 **Fills**
 
@@ -253,6 +283,14 @@ Both positions from the buys above were closed in full, each sold within 0.1% of
 |------------|------|------|------|---------|--------|
 | 17:11:49 | Limit buy AAPLB, 2% under the stock | 1 USDT | GO | $324.85/token (wallet price $331.34) | Not placed: the wallet answered "Raw limit orders are not supported. (2)" ([DX #32](docs/DX_LOG.md#32-limit-order-buy-on-bstocks-fails-with-raw-limit-orders-are-not-supported-2-undocumented)) |
 
+**Paying for data (x402 through the Agentic Wallet)**
+
+| Run (UTC) | What | Paid with | Result | Tx |
+|------------|------|-----------|--------|----|
+| 17:38:50 | Fund: USDT to U (wallet market order), quote +0.03% vs 1:1 | 0.6 USDT | **0.600159 U** received, gas 0.000066 BNB | [0x7c87…9702](https://bscscan.com/tx/0x7c873cd0474fb61a72bf723cac8a2b8fb2df05ba05b18e9848378b52ada59702) |
+| 17:39–17:48 | BNB Stock Agent: NVDA comprehensive report (4 attempts) | 0.1 U, `eip3009` | Rejected every time (`402 payment_rejected`, `success: false`, no transaction); nothing charged ([DX #37](docs/DX_LOG.md#37-the-bnb-stock-agent-rejects-valid-agentic-wallet-u-payments-with-a-bare-payment_rejected)) | none |
+| 17:50:45 | **CoinMarketCap MCP `get_global_metrics_latest`** | **0.01 U**, `eip3009` | **Paid, HTTP 200**: market cap $2.85T, volumes, Fear & Greed ([response](receipts/x402/2026-09-29T17-50-45-820Z-x402-mcpcoinmarketcapcomx402mcp.response.txt)); the settlement header has no tx hash ([DX #38](docs/DX_LOG.md#38-payment-response-has-a-different-shape-per-seller-coinmarketcaps-carries-no-transaction-hash)) | [0xf397…d524](https://bscscan.com/tx/0xf3972ad59bf1ed815b241cb769f3df4f2e0cf3f1d1c3d54d73854a5b7f66d524) |
+
 **Refusals (nothing signed)**
 
 | Run (UTC) | Venue | Size | Mode | Refused because |
@@ -262,10 +300,11 @@ Both positions from the buys above were closed in full, each sold within 0.1% of
 | 15:24:43 | BNB to USDT | 0.0033 BNB | live | Binance simulation reverted: "Min return not reached" on a fresh LiquidMesh quote ([DX #24](docs/DX_LOG.md#24-fresh-liquidmesh-quotes-fail-their-own-05-minimum-in-simulation)) |
 | 15:25:13 | NVDAB | $1.50 | live | Same: a four-hop LiquidMesh route (USDT, BTCB, USDC, WBNB, NVDAB) failed its own 0.5% minimum. The exact approval had gone through; the swap never did |
 | 15:25:31 | NVDAB | $1.50 | live | Same route, same simulated revert |
+| 17:35:25 | x402: Stock Agent NVDA report | 0.1 USDT | dry run | `NO_PAYABLE_OPTION`: the wallet held only USDT, and its `READY_TO_SIGN` USDT option still needed a Permit2 approval ([DX #34](docs/DX_LOG.md#34-x402-payment-preview-marks-a-permit2-option-ready_to_sign-while-needapprovefirst-is-true)) |
 
 ## Developer experience
 
-We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (33 entries so far; #22–#28 come from the live fills, #29 from deploying the web desk, #30–#33 from trading through the Agentic Wallet). The [DX page](https://executable-gap-desk.vercel.app/dx) lists them by severity.
+We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (38 entries so far; #22–#28 come from the live fills, #29 from deploying the web desk, #30–#33 from trading through the Agentic Wallet, #34–#38 from paying over x402). The [DX page](https://executable-gap-desk.vercel.app/dx) lists them by severity.
 
 _The full DX report will be summarized here in Part 6._
 

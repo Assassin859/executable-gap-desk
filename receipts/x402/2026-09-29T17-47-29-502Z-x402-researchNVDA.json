@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "id": "2026-09-29T17-47-29-502Z-x402-researchNVDA",
+  "kind": "x402",
+  "createdAt": "2026-09-29T17:47:29.502Z",
+  "mode": "live",
+  "outcome": "FAILED",
+  "refusal": {
+    "code": "PAYMENT_REJECTED",
+    "message": "The server rejected the payment (HTTP 402): {\"errorCode\": \"payment_rejected\"}"
+  },
+  "label": "research NVDA",
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "url": "https://stock-agent.bnbchain.org/x402/analyze/async",
+  "method": "POST",
+  "resource": {
+    "url": "https://stock-agent.bnbchain.org/x402/analyze/async",
+    "description": "Stock analysis for NVDA",
+    "mimeType": "application/json"
+  },
+  "paymentId": "bb152f44-9834-4380-aa1d-677d5f7673f5",
+  "options": [
+    {
+      "index": 1,
+      "token": "U",
+      "method": "eip3009",
+      "status": "READY_TO_SIGN",
+      "reasons": [],
+      "needApproveFirst": false,
+      "amount": "0.100000000000000000"
+    },
+    {
+      "index": 2,
+      "token": "USDT",
+      "method": "permit2-exact",
+      "status": "READY_TO_SIGN",
+      "reasons": [],
+      "needApproveFirst": true,
+      "amount": "0.100000000000000000"
+    },
+    {
+      "index": 3,
+      "token": "USD1",
+      "method": "eip3009",
+      "status": "ACTION_REQUIRED",
+      "reasons": [
+        "INSUFFICIENT_BALANCE"
+      ],
+      "needApproveFirst": false,
+      "amount": "0.100000000000000000"
+    },
+    {
+      "index": 4,
+      "token": "USDC",
+      "method": "permit2-exact",
+      "status": "ACTION_REQUIRED",
+      "reasons": [
+        "INSUFFICIENT_BALANCE"
+      ],
+      "needApproveFirst": true,
+      "amount": "0.100000000000000000"
+    }
+  ],
+  "option": {
+    "index": 1,
+    "token": "U",
+    "tokenAddress": "0xcE24439F2D9C6a2289F741120FE202248B666666",
+    "method": "eip3009",
+    "amount": "0.100000000000000000",
+    "amountUsd": 0.09996216220397959,
+    "payTo": "0xd10bddc20e4dc42a1a19a9653e994991e25b8153",
+    "network": "eip155:56"
+  },
+  "signed": {
+    "headerName": "PAYMENT-SIGNATURE",
+    "expiresAt": "2026-09-29T17:49:45.000Z",
+    "approveTxHash": null,
+    "proof": {
+      "x402Version": 2,
+      "resourceUrl": "https://stock-agent.bnbchain.org/x402/analyze/async",
+      "acceptedMatches": true,
+      "authorization": {
+        "from": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+        "to": "0xd10bddc20e4dc42a1a19a9653e994991e25b8153",
+        "value": "100000000000000000",
+        "validAfter": "1790704065",
+        "validBefore": "1790704185"
+      }
+    }
+  },
+  "settlement": {
+    "success": false,
+    "transaction": "",
+    "network": "eip155:56",
+    "payer": "0x623df829df5cf33506a0fbb152dbc885d5b61c65",
+    "bscscan": null,
+    "errorReason": "payment_rejected",
+    "raw": {
+      "success": false,
+      "transaction": "",
+      "network": "eip155:56",
+      "payer": "0x623df829df5cf33506a0fbb152dbc885d5b61c65",
+      "errorReason": "payment_rejected"
+    }
+  },
+  "httpStatus": 402,
+  "steps": [
+    {
+      "at": "2026-09-29T17:47:43.164Z",
+      "step": "402 payment required"
+    },
+    {
+      "at": "2026-09-29T17:47:44.420Z",
+      "step": "wallet preview",
+      "detail": "4 options"
+    },
+    {
+      "at": "2026-09-29T17:47:44.425Z",
+      "step": "option picked",
+      "detail": "0.100000000000000000 U via eip3009 to 0xd10bddc20e4dc42a1a19a9653e994991e25b8153"
+    },
+    {
+      "at": "2026-09-29T17:47:44.427Z",
+      "step": "sign"
+    },
+    {
+      "at": "2026-09-29T17:47:45.318Z",
+      "step": "waiting for validAfter",
+      "detail": "2.7s"
+    },
+    {
+      "at": "2026-09-29T17:47:48.005Z",
+      "step": "replay",
+      "detail": "PAYMENT-SIGNATURE"
+    },
+    {
+      "at": "2026-09-29T17:48:01.462Z",
+      "step": "settlement"
+    },
+    {
+      "at": "2026-09-29T17:48:01.464Z",
+      "step": "stopped",
+      "detail": "PAYMENT_REJECTED: The server rejected the payment (HTTP 402): {\"errorCode\": \"payment_rejected\"}"
+    }
+  ]
+}

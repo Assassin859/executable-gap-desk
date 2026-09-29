@@ -184,6 +184,58 @@ export async function limitCancel(strategyId: string, run: BawRunner = createBaw
   return runJson(run, ["limit-order", "cancel", "--strategyId", strategyId]);
 }
 
+// ---------- x402 (B402) payments ----------
+
+export const X402OptionSchema = z.looseObject({
+  index: num,
+  status: z.string(),
+  reasons: z.array(z.string()).default([]),
+  scheme: z.string().nullish(),
+  assetTransferMethod: z.string().nullish(),
+  tokenAddress: z.string(),
+  tokenSymbol: z.string().nullish(),
+  amount: z.string(),
+  amountUsd: num.nullish(),
+  payTo: z.string().nullish(),
+  currentBalance: z.string().nullish(),
+  needApproveFirst: z.boolean().nullish(),
+  originalAccept: z.record(z.string(), z.unknown()),
+});
+export type X402Option = z.infer<typeof X402OptionSchema>;
+
+export const X402PreviewSchema = z.looseObject({ paymentId: z.string().min(1), options: z.array(X402OptionSchema) });
+export type X402Preview = z.infer<typeof X402PreviewSchema>;
+
+export const X402SignSchema = z.looseObject({
+  paymentHeaderName: z.string().min(1),
+  paymentHeaderValue: z.string().min(1),
+  signatureExpiresAt: num.nullish(),
+  /** Set when signing a Permit2 option made baw dispatch an approval transaction first. */
+  approveTxHash: z.string().nullish(),
+  binanceChainId: str.nullish(),
+});
+export type X402Signed = z.infer<typeof X402SignSchema>;
+
+/** `requirements` is the server's `PAYMENT-REQUIRED` header value (base64) or the raw JSON; baw auto-detects. */
+export function x402PreviewArgs(requirements: string): string[] {
+  if (!requirements.trim()) throw new BawError("Empty x402 payment requirements");
+  return ["x402-payment", "preview", "--paymentRequirements", requirements.trim()];
+}
+
+export async function x402Preview(requirements: string, run: BawRunner = createBawRunner()): Promise<X402Preview> {
+  return X402PreviewSchema.parse(await runJson(run, x402PreviewArgs(requirements)));
+}
+
+export function x402SignArgs(paymentId: string, index: number): string[] {
+  if (!/^[A-Za-z0-9-]{1,64}$/.test(paymentId)) throw new BawError(`Invalid x402 payment id: ${paymentId}`);
+  if (!Number.isInteger(index) || index < 0) throw new BawError(`Invalid x402 option index: ${index}`);
+  return ["x402-payment", "sign", "--paymentId", paymentId, "--selectedIndex", String(index)];
+}
+
+export async function x402Sign(paymentId: string, index: number, run: BawRunner = createBawRunner()): Promise<X402Signed> {
+  return X402SignSchema.parse(await runJson(run, x402SignArgs(paymentId, index)));
+}
+
 export interface BawWallet {
   balance(): Promise<WalletToken[]>;
   quota(): Promise<Quota>;
@@ -194,6 +246,8 @@ export interface BawWallet {
   limitBuy(p: LimitBuyParams): Promise<OrderInfo>;
   limitOrders(opts?: { status?: OrderStatus }): Promise<OrderInfo[]>;
   limitCancel(strategyId: string): Promise<unknown>;
+  x402Preview(requirements: string): Promise<X402Preview>;
+  x402Sign(paymentId: string, index: number): Promise<X402Signed>;
 }
 
 export function createBawWallet(run: BawRunner = createBawRunner()): BawWallet {
@@ -207,5 +261,7 @@ export function createBawWallet(run: BawRunner = createBawRunner()): BawWallet {
     limitBuy: (p) => limitBuy(p, run),
     limitOrders: (o) => limitOrders(o, run),
     limitCancel: (id) => limitCancel(id, run),
+    x402Preview: (req) => x402Preview(req, run),
+    x402Sign: (id, i) => x402Sign(id, i, run),
   };
 }

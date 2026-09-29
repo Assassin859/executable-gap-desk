@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "id": "2026-09-29T17-35-25-455Z-x402-researchNVDA",
+  "kind": "x402",
+  "createdAt": "2026-09-29T17:35:25.455Z",
+  "mode": "dry-run",
+  "outcome": "REFUSED",
+  "refusal": {
+    "code": "NO_PAYABLE_OPTION",
+    "message": "No payment option can be signed safely: USDT: needs a Permit2 approval first, which this desk never grants; U: ACTION_REQUIRED (INSUFFICIENT_BALANCE); USD1: ACTION_REQUIRED (INSUFFICIENT_BALANCE); USDC: ACTION_REQUIRED (INSUFFICIENT_BALANCE)."
+  },
+  "label": "research NVDA",
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "url": "https://stock-agent.bnbchain.org/x402/analyze/async",
+  "method": "POST",
+  "resource": {
+    "url": "https://stock-agent.bnbchain.org/x402/analyze/async",
+    "description": "Stock analysis for NVDA",
+    "mimeType": "application/json"
+  },
+  "paymentId": "1c5ccb96-f3fd-4ee8-a611-eed2f6a10282",
+  "options": [
+    {
+      "index": 1,
+      "token": "USDT",
+      "method": "permit2-exact",
+      "status": "READY_TO_SIGN",
+      "reasons": [],
+      "needApproveFirst": true,
+      "amount": "0.100000000000000000"
+    },
+    {
+      "index": 2,
+      "token": "U",
+      "method": "eip3009",
+      "status": "ACTION_REQUIRED",
+      "reasons": [
+        "INSUFFICIENT_BALANCE"
+      ],
+      "needApproveFirst": false,
+      "amount": "0.100000000000000000"
+    },
+    {
+      "index": 3,
+      "token": "USD1",
+      "method": "eip3009",
+      "status": "ACTION_REQUIRED",
+      "reasons": [
+        "INSUFFICIENT_BALANCE"
+      ],
+      "needApproveFirst": false,
+      "amount": "0.100000000000000000"
+    },
+    {
+      "index": 4,
+      "token": "USDC",
+      "method": "permit2-exact",
+      "status": "ACTION_REQUIRED",
+      "reasons": [
+        "INSUFFICIENT_BALANCE"
+      ],
+      "needApproveFirst": true,
+      "amount": "0.100000000000000000"
+    }
+  ],
+  "option": null,
+  "signed": null,
+  "settlement": null,
+  "httpStatus": 402,
+  "steps": [
+    {
+      "at": "2026-09-29T17:35:39.142Z",
+      "step": "402 payment required"
+    },
+    {
+      "at": "2026-09-29T17:35:40.464Z",
+      "step": "wallet preview",
+      "detail": "4 options"
+    },
+    {
+      "at": "2026-09-29T17:35:40.464Z",
+      "step": "refused",
+      "detail": "NO_PAYABLE_OPTION: No payment option can be signed safely: USDT: needs a Permit2 approval first, which this desk never grants; U: ACTION_REQUIRED (INSUFFICIENT_BALANCE); USD1: ACTION_REQUIRED (INSUFFICIENT_BALANCE); USDC: ACTION_REQUIRED (INSUFFICIENT_BALANCE)."
+    }
+  ]
+}

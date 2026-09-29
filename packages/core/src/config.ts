@@ -10,6 +10,11 @@ export const PUBLIC_HEADERS: Record<string, string> = {
 
 export const CHAIN_ID = "56";
 export const USDT_BSC = "0x55d398326f99059fF775485246999027B3197955";
+/** United Stables (U) and World Liberty USD1: the B402 tokens that pay by EIP-3009 with no approval. */
+export const U_BSC = "0xcE24439F2D9C6a2289F741120FE202248B666666";
+export const USD1_BSC = "0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d";
+/** 18-decimal USD stablecoins the desk converts between. */
+export const STABLES: Readonly<Record<"USDT" | "U" | "USD1", string>> = { USDT: USDT_BSC, U: U_BSC, USD1: USD1_BSC };
 
 export const ENDPOINTS = {
   list: "/v1/public/wallet-direct/buw/wallet/market/token/rwa/stock/detail/list/ai",

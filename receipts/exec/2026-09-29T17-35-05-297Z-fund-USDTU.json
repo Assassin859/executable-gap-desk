@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "id": "2026-09-29T17-35-05-297Z-fund-USDTU",
+  "kind": "funding",
+  "createdAt": "2026-09-29T17:35:05.297Z",
+  "mode": "dry-run",
+  "outcome": "SIMULATED",
+  "refusal": null,
+  "symbol": "USDT-U",
+  "venue": null,
+  "usd": 0.6,
+  "wallet": "0x623dF829DF5cf33506a0fbb152dbc885d5b61C65",
+  "gate": null,
+  "quote": null,
+  "balances": {
+    "usdt": "2485244918494677312",
+    "bnb": "1033380578645114",
+    "allowance": "0",
+    "token": "0"
+  },
+  "approval": null,
+  "swap": null,
+  "simulation": null,
+  "fill": null,
+  "txDetail": null,
+  "steps": [
+    {
+      "at": "2026-09-29T17:35:05.298Z",
+      "step": "wallet quote",
+      "detail": "0.6 USDT to U"
+    },
+    {
+      "at": "2026-09-29T17:35:06.383Z",
+      "step": "wallet quote checked",
+      "detail": "0.600102768059699570 U (+0.02% vs 1:1)"
+    },
+    {
+      "at": "2026-09-29T17:35:07.170Z",
+      "step": "dry run: wallet quote checked; not sent",
+      "detail": "pass --live to send the market order"
+    }
+  ],
+  "via": "market-order",
+  "walletQuote": {
+    "fromQty": "0.6",
+    "toQty": "0.600102768059699570",
+    "fillPerShare": 1.0001712800994993,
+    "deviationPct": 0.00017128009949929357,
+    "gapPct": null
+  }
+}

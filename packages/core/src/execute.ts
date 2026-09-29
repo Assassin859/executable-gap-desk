@@ -75,7 +75,17 @@ export type RefusalCode =
   | "TRIGGER_AT_MARKET"
   | "ORDER_FAILED"
   | "ORDER_TIMEOUT"
-  | "WALLET_REJECTED";
+  | "WALLET_REJECTED"
+  | "NOT_A_STABLE"
+  | "STABLE_DEPEG"
+  | "BAD_PAYMENT_REQUIREMENTS"
+  | "NO_PAYABLE_OPTION"
+  | "X402_PER_CALL_CAP"
+  | "X402_DAILY_CAP"
+  | "UNEXPECTED_APPROVAL"
+  | "PAYMENT_REJECTED"
+  | "PAID_BUT_ERROR"
+  | "REPLAY_UNKNOWN";
 
 /** A rail stopped the run. Before anything is broadcast this is a REFUSED receipt; after, FAILED. */
 export class Refusal extends Error {

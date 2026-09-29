@@ -14,5 +14,7 @@
   "slippagePct": 0.5,
   "maxLimitOrderUsd": 10,
   "maxWalletQuoteDeviationPct": 0.005,
-  "marketOrderTimeoutSec": 180
+  "marketOrderTimeoutSec": 180,
+  "maxDailyX402Usd": 1,
+  "x402MaxPerCallUsd": 0.25
 }
