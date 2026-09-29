@@ -80,8 +80,11 @@ export function createRateLimiter(rps: number, burst: number = rps): Limiter {
   };
 }
 
-/** Binance Web3 keyed API allows 5 requests/second per endpoint. */
-export const quoteLimiter = createRateLimiter(5);
+/**
+ * The keyed API allows 5 requests per 1s window per endpoint. A 5-token burst plus refill can put
+ * 9 requests in one window (live 42900s), so quotes are evenly spaced with no burst, with headroom for jitter.
+ */
+export const quoteLimiter = createRateLimiter(4.5, 1);
 
 export interface GetJsonOptions {
   headers?: Record<string, string>;

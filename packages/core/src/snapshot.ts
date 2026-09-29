@@ -3,6 +3,7 @@ import { buildMatrix, type BuildMatrixOptions, type MatrixResult, type MatrixRow
 import { getQuote, type ExecQuote, type QuoteOptions } from "./quotes";
 import type { Venue } from "./registry";
 import type { MarketSession } from "./session";
+import { MissingCredentialsError } from "./signer";
 
 type QuoteFn = (venue: Venue, usd: number, opts: QuoteOptions) => Promise<ExecQuote>;
 
@@ -55,8 +56,24 @@ export async function gateRows(rows: MatrixRow[], session: MarketSession | null,
   const quoteRow = async (r: MatrixRow) => {
     const qopts: QuoteOptions = { multiplier: r.multiplier, reference: r.reference, wallet: opts.wallet };
     const out = await Promise.all(
-      sizes.map(async (s) => {
-        const q = await quote(venueOf(r), s, qopts);
+      sizes.map(async (s): Promise<ExecQuote> => {
+        let q: ExecQuote;
+        try {
+          q = await quote(venueOf(r), s, qopts);
+        } catch (err) {
+          if (err instanceof MissingCredentialsError) throw err;
+          q = {
+            symbol: r.symbol,
+            address: r.address,
+            usd: s,
+            ts: now(),
+            source: "binance-aggregator",
+            ok: false,
+            reason: "UNKNOWN_ERROR",
+            code: null,
+            message: err instanceof Error ? err.message : String(err),
+          };
+        }
         opts.onProgress?.(++done, total);
         return q;
       }),

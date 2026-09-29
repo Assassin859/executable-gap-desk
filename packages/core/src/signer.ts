@@ -86,7 +86,9 @@ export async function signedGet(
       );
     } catch (err) {
       if (!(err instanceof ApiError) || !err.retryable || attempt >= retries) throw err;
-      await new Promise((r) => setTimeout(r, backoffMs * 2 ** attempt + Math.random() * 100));
+      // A 429 means the current 1s window is spent; retrying sooner just burns another attempt.
+      const base = err.httpStatus === 429 ? Math.max(backoffMs * 2 ** attempt, 1000) : backoffMs * 2 ** attempt;
+      await new Promise((r) => setTimeout(r, base + Math.random() * 100));
     }
   }
 }

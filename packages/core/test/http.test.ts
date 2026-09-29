@@ -71,6 +71,18 @@ describe("createRateLimiter", () => {
     expect(started).toEqual([0, 0, 0, 0, 0, 200, 400]);
   });
 
+  it("with burst 1, never starts more than 5 tasks in any 1s window at 4.5 rps", async () => {
+    vi.useFakeTimers();
+    const limit = createRateLimiter(4.5, 1);
+    const t0 = Date.now();
+    const started: number[] = [];
+    const all = Promise.all(Array.from({ length: 12 }, () => limit(async () => void started.push(Date.now() - t0))));
+    await vi.advanceTimersByTimeAsync(5_000);
+    await all;
+    for (const t of started) expect(started.filter((s) => s >= t && s < t + 1000).length).toBeLessThanOrEqual(5);
+    expect(started[1]! - started[0]!).toBeGreaterThanOrEqual(222);
+  });
+
   it("keeps going after a task rejects", async () => {
     const limit = createRateLimiter(100);
     await expect(limit(async () => Promise.reject(new Error("boom")))).rejects.toThrow("boom");

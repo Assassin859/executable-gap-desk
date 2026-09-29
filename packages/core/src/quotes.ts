@@ -62,8 +62,8 @@ export interface QuoteOk extends QuoteBase {
   route: string[];
   protocols: string[];
   /**
-   * API `priceImpactPercent`, raw. Units are undocumented and it does not track measured ladder
-   * impact under either reading (see DX_LOG), so the gate uses `ladderImpact` instead.
+   * API `priceImpactPercent`: despite the name, a 0-1 fraction against the market price
+   * (live values reach 0.9995 on thin Uniswap V4 routes). Informational; the gate prices fills directly.
    */
   vendorPriceImpact: number | null;
   /** API `tradeFee`: tracks gas limit x gas price in USD (~$0.02 at any size), so it is the network fee, not a trading fee. */

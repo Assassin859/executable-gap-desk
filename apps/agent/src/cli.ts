@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { dirname, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
@@ -10,6 +10,7 @@ import {
   CHAIN_ID,
   DEFAULT_LADDER,
   DEFAULT_POLICY,
+  buildSnapshot,
   checkTicker,
   MissingCredentialsError,
   QUOTE_REASON_TEXT,
@@ -24,6 +25,8 @@ import {
   sortByGap,
   type ExecQuote,
   type MatrixFlag,
+  type Platform,
+  type TickerCheck,
   type QuoteFail,
   type SessionName,
   type Verdict,
@@ -241,7 +244,7 @@ program
       `${pc.bold(venue.symbol)} ${pc.dim(platformLabel(venue.platform))}  displayed ${usd(row?.perShare)}/share  reference ${usd(row?.reference)}  ${pc.dim(`multiplier ${row?.multiplier?.toFixed(6) ?? "?"}`)}`,
     );
     const table = new Table({
-      head: ["Size", "Mode / vendor", "Tokens out", "Per share", "Exec gap", "Ladder impact", "API impact (raw)", "Net fee", "Route"],
+      head: ["Size", "Mode / vendor", "Tokens out", "Per share", "Exec gap", "Ladder impact", "API impact", "Net fee", "Route"],
       colAligns: ["right", "left", "right", "right", "right", "right", "right", "right", "left"],
     });
     for (const q of ladder.quotes) {
@@ -252,11 +255,11 @@ program
       table.push([
         usd(q.usd, 0),
         `${q.executionMode ?? "?"} / ${q.vendorName ?? "?"}`,
-        q.tokensOut.toFixed(6),
+        q.tokensOut >= 0.001 ? q.tokensOut.toFixed(6) : q.tokensOut.toPrecision(4),
         usd(q.fillPerShare),
         pct(q.executableGapPct),
         pct(ladder.impactPct[q.usd]),
-        q.vendorPriceImpact === null ? pc.dim("n/a") : pc.dim(String(q.vendorPriceImpact)),
+        pct(q.vendorPriceImpact),
         usd(q.networkFeeUsd, 3),
         q.route.join(" > "),
       ]);
@@ -338,6 +341,73 @@ program
         : pc.red(pc.bold("No safe venue right now.")),
     );
     console.log(pc.dim("Displayed = on-chain token price per share. Executable = what a real quote for this size pays per share."));
+  });
+
+const VERDICT_SHORT: Record<Verdict, (s: string) => string> = {
+  GO: (s) => pc.green(s),
+  CAUTION: (s) => pc.yellow(s),
+  BLOCK: (s) => pc.red(s),
+};
+
+program
+  .command("snapshot")
+  .description("Quote every venue at one size (5 req/s), gate each ticker, and summarize where it is safe to trade")
+  .option("--all", "every tokenized stock on BSC, not only multi-venue tickers")
+  .option("--ticker <list...>", "limit to tickers, e.g. NVDA AAPL MSTR")
+  .option("--usd <size>", "trade size in USD", "25")
+  .option("--out <file>", "also write the snapshot JSON to a file")
+  .option("--json", "print JSON")
+  .action(async (opts: { all?: boolean; ticker?: string[]; usd: string; out?: string; json?: boolean }) => {
+    const size = Number(opts.usd);
+    if (!Number.isFinite(size) || size <= 0) throw new Error(`Invalid --usd size: ${opts.usd}`);
+    const tickers = opts.ticker ? opts.ticker.join(",").split(/[\s,]+/).filter(Boolean) : undefined;
+    const tty = process.stderr.isTTY;
+    const snap = await buildSnapshot({
+      scope: opts.all ? "all" : "multi",
+      tickers,
+      usd: size,
+      onProgress: (done, total) => {
+        if (tty) process.stderr.write(`\r${pc.dim(`quoting ${done}/${total}`)}`);
+        else if (done === total || done % 50 === 0) process.stderr.write(`quoting ${done}/${total}\n`);
+      },
+    });
+    if (tty) process.stderr.write("\r\x1b[K");
+    const json = JSON.stringify({ ...snap, session: snap.session ? { ...snap.session, raw: undefined } : null }, null, 2);
+    if (opts.out) writeFileSync(opts.out, `${json}\n`);
+    if (opts.json) {
+      console.log(json);
+      return;
+    }
+
+    const cell = (t: TickerCheck, platform: Platform) => {
+      const v = t.venues.find((x) => x.platform === platform);
+      if (!v) return pc.dim("-");
+      const detail = v.quote && !v.quote.ok ? `${v.quote.code ?? v.quote.reason}` : v.executableGapPct === null ? v.reasons[0]?.code ?? "" : pct(v.executableGapPct);
+      return `${VERDICT_SHORT[v.verdict](v.verdict)} ${detail}`;
+    };
+    const table = new Table({ head: ["Ticker", "Ondo", "bStocks", "xStocks", "Best venue", "Largest displayed gap"] });
+    for (const t of snap.tickers) {
+      const loudest = [...t.venues].filter((v) => v.displayedGapPct !== null).sort((a, b) => Math.abs(b.displayedGapPct!) - Math.abs(a.displayedGapPct!))[0];
+      table.push([
+        pc.bold(t.ticker),
+        cell(t, "ondo"),
+        cell(t, "bstocks"),
+        cell(t, "xstocks"),
+        t.bestVenue ? `${pc.cyan(t.bestVenue.symbol)} ${pct(t.bestVenue.executableGapPct)}` : pc.red("none"),
+        loudest ? `${loudest.symbol} ${pct(loudest.displayedGapPct)}${loudest.verdict === "BLOCK" ? pc.dim(" (blocked)") : ""}` : pc.dim("n/a"),
+      ]);
+    }
+    console.log(table.toString());
+    const s = snap.summary;
+    const traps = snap.tickers.flatMap((t) => t.venues).filter((v) => v.displayedGapPct !== null && Math.abs(v.displayedGapPct) >= 0.03 && v.verdict === "BLOCK").length;
+    console.log(
+      `${pc.bold(String(s.tickers))} tickers, ${pc.bold(String(s.venues))} venues at ${usd(size, 0)}: ` +
+        `${pc.green(`${s.go} GO`)}, ${pc.yellow(`${s.caution} CAUTION`)}, ${pc.red(`${s.block} BLOCK`)} ` +
+        `(${s.quoteErrors} quote errors). ${s.withBestVenue} tickers have a safe venue. ` +
+        `${traps} displayed gaps of 3%+ were blocked. ` +
+        pc.dim(`| ${snap.session ? SESSION_TEXT[snap.session.session] : "session unavailable"} | ${(snap.elapsedMs / 1000).toFixed(1)}s`),
+    );
+    if (opts.out) console.log(pc.dim(`wrote ${opts.out}`));
   });
 
 program
