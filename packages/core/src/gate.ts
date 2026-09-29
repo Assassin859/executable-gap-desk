@@ -23,6 +23,10 @@ export const PolicySchema = z
     impactCautionPct: frac,
     maxVenueDisagreementPct: frac,
     offHoursMaxVerdict: z.enum(["GO", "CAUTION", "BLOCK"]),
+    /** Execution only: live USDT spent on stock fills per UTC day, summed from receipts. */
+    maxDailySpendUsd: z.number().positive(),
+    /** Execution only: `/swap` slippage in percent (0.5 = 0.5%), which sets `minReceiveAmount`. */
+    slippagePct: z.number().positive().max(5),
   })
   .refine((p) => p.goMaxGapPct < p.cautionMaxGapPct, { message: "goMaxGapPct must be below cautionMaxGapPct" });
 export type Policy = z.infer<typeof PolicySchema>;

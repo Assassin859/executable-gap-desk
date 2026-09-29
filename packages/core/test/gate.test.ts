@@ -60,6 +60,8 @@ const mkQuote = (fillPerShare: number, o: Partial<QuoteOk> = {}): QuoteOk => ({
   gasLimit: 450000,
   quoteId: null,
   routeCount: 1,
+  approveTarget: null,
+  tokenDecimals: 18,
   ...o,
 });
 

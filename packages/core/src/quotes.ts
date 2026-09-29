@@ -72,6 +72,9 @@ export interface QuoteOk extends QuoteBase {
   gasLimit: number | null;
   quoteId: string | null;
   routeCount: number;
+  /** Router the sell token must be approved to; execution cross-checks it against /approve-transaction and /swap. */
+  approveTarget: string | null;
+  tokenDecimals: number;
 }
 
 export interface QuoteFail extends QuoteBase {
@@ -159,6 +162,8 @@ export function parseQuote(ctx: ParseQuoteContext, data: unknown): ExecQuote {
     gasLimit: r.estimateGasFee,
     quoteId: r.quoteId,
     routeCount: routes.length,
+    approveTarget: r.approveTarget,
+    tokenDecimals: decimals,
   };
 }
 

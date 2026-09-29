@@ -9,5 +9,7 @@
   "impactCautionUsd": 100,
   "impactCautionPct": 0.01,
   "maxVenueDisagreementPct": 0.03,
-  "offHoursMaxVerdict": "CAUTION"
+  "offHoursMaxVerdict": "CAUTION",
+  "maxDailySpendUsd": 5,
+  "slippagePct": 0.5
 }
