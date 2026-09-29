@@ -63,10 +63,45 @@ export function createBawRunner(timeoutMs = 120_000): BawRunner {
     });
 }
 
+const NUMBER_TOKEN = /-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+
+/**
+ * Wraps integer literals beyond 2^53 in quotes so JSON.parse keeps their printed digits.
+ * Works on any Node version (the reviver's `context.source` only exists from Node 22).
+ */
+export function quoteUnsafeIntegers(json: string): string {
+  let out = "";
+  let i = 0;
+  while (i < json.length) {
+    const ch = json[i]!;
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < json.length && json[j] !== '"') j += json[j] === "\\" ? 2 : 1;
+      out += json.slice(i, j + 1);
+      i = j + 1;
+      continue;
+    }
+    if (ch === "-" || (ch >= "0" && ch <= "9")) {
+      NUMBER_TOKEN.lastIndex = i;
+      const tok = NUMBER_TOKEN.exec(json)?.[0];
+      if (tok) {
+        const integer = !/[.eE]/.test(tok);
+        out += integer && !Number.isSafeInteger(Number(tok)) ? `"${tok}"` : tok;
+        i += tok.length;
+        continue;
+      }
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+}
+
 /**
  * `baw --json` prints one JSON object. On Windows it can then crash with a libuv assertion
  * (exit 0xC0000409) after printing, so the exit code alone is not trusted. Integers beyond 2^53
- * are kept as their printed digits; `baw` itself already rounds some amounts before printing.
+ * come back as strings of their printed digits; `baw` itself already rounds some amounts before
+ * printing (DX #28).
  */
 export function parseBawOutput(r: BawResult): unknown {
   const start = r.stdout.indexOf("{");
@@ -76,9 +111,7 @@ export function parseBawOutput(r: BawResult): unknown {
   }
   let json: { success?: boolean; data?: unknown; message?: unknown; msg?: unknown; error?: unknown; code?: unknown };
   try {
-    json = JSON.parse(r.stdout.slice(start, end + 1), (_k, v, ctx?: { source?: string }) =>
-      typeof v === "number" && !Number.isSafeInteger(v) && Number.isInteger(v) && ctx?.source ? ctx.source : v,
-    );
+    json = JSON.parse(quoteUnsafeIntegers(r.stdout.slice(start, end + 1)));
   } catch {
     throw new BawError(`baw returned invalid JSON (exit ${r.code})`);
   }

@@ -1,5 +1,7 @@
 # Executable Gap Desk
 
+[![CI](https://github.com/Assassin859/executable-gap-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/Assassin859/executable-gap-desk/actions/workflows/ci.yml)
+
 **Displayed gaps lie. Executable ones don't.**
 
 The same US stock trades on BNB Smart Chain as three different tokens: Ondo (`NVDAon`), xStocks (`NVDAx`) and bStocks (`NVDAB`). Their displayed prices can disagree by 10% or more, which looks like free money. Most of it isn't: the price is stale, the multiplier is wrong, or there is no liquidity to fill against.
@@ -23,7 +25,7 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 
 ## Quickstart
 
-Requires Node 24+ and pnpm 9.
+Requires Node 22.12+ (24 recommended) and pnpm 9.
 
 ```bash
 pnpm i

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { BawError, contractCallArgs, executeContractCall, findTxSince, parseBawOutput, previewContractCall } from "../src/baw";
+import { BawError, contractCallArgs, executeContractCall, findTxSince, parseBawOutput, previewContractCall, quoteUnsafeIntegers } from "../src/baw";
 
 /** Shape of a live `baw contract-call preview --json` (v1.10.0) for a BNB to USDT swap; ids shortened. */
 const PREVIEW = `{
@@ -36,8 +36,31 @@ describe("baw wrapper", () => {
   });
 
   it("keeps printed digits of integers beyond 2^53 instead of rounding again", () => {
-    const data = parseBawOutput({ code: 0, stdout: PREVIEW, stderr: "" }) as { simulationResult: { balanceChanges: Array<{ change: unknown }> } };
+    const data = parseBawOutput({ code: 0, stdout: PREVIEW, stderr: "" }) as { simulationResult: { balanceChanges: Array<{ change: unknown }> }; expiresAt: unknown };
     expect(data.simulationResult.balanceChanges[0]!.change).toBe("2511621521265890300");
+    expect(data.expiresAt).toBe(1790695061277);
+  });
+
+  describe("quoteUnsafeIntegers", () => {
+    const parse = (s: string) => JSON.parse(quoteUnsafeIntegers(s)) as unknown;
+
+    it("quotes only integers beyond 2^53", () => {
+      expect(parse('{"a":12345678901234567890,"b":42,"c":1.5,"d":9007199254740991}')).toEqual({ a: "12345678901234567890", b: 42, c: 1.5, d: 9007199254740991 });
+      expect(parse("[-9007199254740993, -1]")).toEqual(["-9007199254740993", -1]);
+    });
+
+    it("leaves decimals, exponents and literals alone", () => {
+      expect(parse('[1e30, 12345678901234567890.5, 2E+5, true, null, false]')).toEqual([1e30, 12345678901234567890.5, 2e5, true, null, false]);
+    });
+
+    it("never touches digits inside strings, including after escaped quotes", () => {
+      const src = String.raw`{"s":"a\"12345678901234567890","t":"back\\","n":12345678901234567890}`;
+      expect(parse(src)).toEqual({ s: 'a"12345678901234567890', t: "back\\", n: "12345678901234567890" });
+    });
+
+    it("handles nesting and whitespace", () => {
+      expect(parse('{ "x": [ { "y": [ 99999999999999999999 , 7 ] } ] }')).toEqual({ x: [{ y: ["99999999999999999999", 7] }] });
+    });
   });
 
   it("trusts the JSON body even after the Windows libuv crash exit code", () => {
