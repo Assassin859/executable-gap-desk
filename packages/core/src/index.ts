@@ -5,3 +5,4 @@ export * from "./registry";
 export * from "./session";
 export * from "./prices";
 export * from "./matrix";
+export * from "./signer";

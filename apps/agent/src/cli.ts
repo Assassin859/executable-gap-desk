@@ -7,11 +7,15 @@ import Table from "cli-table3";
 import pc from "picocolors";
 import {
   ApiError,
+  CHAIN_ID,
+  MissingCredentialsError,
   buildMatrix,
+  credentialsFromEnv,
   getAssetStatus,
   getMarketSession,
   loadRegistry,
   resolve,
+  signedGet,
   sortByGap,
   type MatrixFlag,
   type SessionName,
@@ -195,7 +199,32 @@ program
     console.log(table.toString());
   });
 
+program
+  .command("ping")
+  .description("Check the keyed Binance Web3 API credentials in .env.local with a signed request")
+  .option("--json", "print JSON")
+  .action(async (opts: { json?: boolean }) => {
+    const creds = credentialsFromEnv();
+    const started = Date.now();
+    const data = await signedGet("/api/v1/dex/aggregator/supported/chain", creds);
+    const ms = Date.now() - started;
+    if (opts.json) {
+      console.log(JSON.stringify({ ok: true, latencyMs: ms, data }, null, 2));
+      return;
+    }
+    const chains = Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
+    const names = chains.map((c) => String(c.chainName ?? c.name ?? c.chainId ?? "?"));
+    const bsc = chains.some((c) => String(c.chainId ?? c.chainIndex ?? "") === CHAIN_ID);
+    console.log(`${pc.green("signed request OK")} ${pc.dim(`key ${creds.apiKey.slice(0, 4)}…${creds.apiKey.slice(-4)}, ${ms} ms`)}`);
+    console.log(`  supported chains  ${names.length ? names.join(", ") : pc.dim(JSON.stringify(data).slice(0, 120))}`);
+    if (chains.length) console.log(`  BSC (56)          ${bsc ? pc.green("supported") : pc.red("not listed")}`);
+  });
+
 program.parseAsync().catch((err: unknown) => {
+  if (err instanceof MissingCredentialsError) {
+    console.error(pc.yellow(err.message));
+    process.exit(2);
+  }
   if (err instanceof ApiError) {
     console.error(pc.red(`API error on ${err.endpoint}: [${err.code ?? err.httpStatus ?? "network"}] ${err.message}`));
   } else {
