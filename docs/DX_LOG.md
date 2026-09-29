@@ -44,6 +44,8 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 | 36 | 2026-09-29 | `baw` | High | `x402-payment sign` can send an on-chain Permit2 approval; neither `--help` nor the docs say so |
 | 37 | 2026-09-29 | Agent Studio | High | The BNB Stock Agent rejects valid Agentic Wallet U payments with a bare `payment_rejected` |
 | 38 | 2026-09-29 | x402 sellers | Medium | `PAYMENT-RESPONSE` has a different shape per seller; CoinMarketCap's carries no transaction hash |
+| 39 | 2026-09-29 | B402 API | Medium | B402 success is code `000000000` (nine zeros) in a new envelope; Binance's own demo merchant checks for `000000` |
+| 40 | 2026-09-29 | B402 API | Medium | `/supported` names tokens only by EIP-712 domain name, with no asset address, yet says not to hardcode names |
 
 ---
 
@@ -352,6 +354,7 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 - **Expected:** `202 {jobId, jobToken}` and a settled payment, or a reason we can act on.
 - **Actual:** every time, after about 13 s, `402 {"errorCode": "payment_rejected"}` with `PAYMENT-RESPONSE {success: false, transaction: "", payer: <our wallet>, errorReason: "payment_rejected"}`. Nothing was charged. The seller's public source ([`bnb-chain/stockanalyst-agent-demo`](https://github.com/bnb-chain/stockanalyst-agent-demo), `x402_verify.py` and `x402_job_service.py`) shows that answer comes after its own checks pass: `accepted` equal to its requirement, recipient, amount, window and EIP-712 recovery of our address. So B402's verify or settle refused, and the seller drops B402's `invalidReason`. What we ruled out: the U token's on-chain `DOMAIN_SEPARATOR` matches the "United Stables" v1 domain in the 402 and it has `transferWithAuthorization`; waiting 2–3 s past `validAfter` (baw sets it to the signing second, valid 120 s) changed nothing; lowercasing the authorization addresses changed nothing. Two minutes later the same wallet paid CoinMarketCap's x402 endpoint 0.01 U by `eip3009` and settled ([0xf397…d524](https://bscscan.com/tx/0xf3972ad59bf1ed815b241cb769f3df4f2e0cf3f1d1c3d54d73854a5b7f66d524)). So wallet signing works, and the refusal is on the Stock Agent's merchant or facilitator side.
 - **Suggested fix:** pass B402's `invalidReason` or `errorReason` through in the 402 body (it isn't sensitive), and document merchant-side limits (daily budget, payer limits) on the price endpoint.
+- **Update (18:27 UTC, `gap b402 selftest --live`):** we became a B402 merchant and sent B402 Verify an Agentic Wallet proof for the same kind of requirement: U by `eip3009`, the same `extra` (`United Stables`, `1`, signer `0x34F7…0899`), signed by `baw x402-payment sign`. B402 answered `isValid: true` ([record](../receipts/b402/2026-09-29T18-27-45-456Z-b402-selftest.json)). So B402 accepts this wallet's proofs, and the Stock Agent's refusal comes from its own merchant path. Its source maps about a dozen different failures to the same `payment_rejected`, including wrapped B402 client exceptions. One candidate: its B402 client (`b402_client.py`, `/papi/v2/b402/*`) treats any `code` other than `"000000"` as an invalid response, while the B402 API we use answers `"000000000"` ([#39](#39-b402-success-is-code-000000000-nine-zeros-in-a-new-envelope-binances-own-demo-merchant-checks-for-000000)). We can't see which surface or code its deployment gets.
 
 ## 38. `PAYMENT-RESPONSE` has a different shape per seller; CoinMarketCap's carries no transaction hash
 
@@ -359,3 +362,17 @@ Conventions: public RWA endpoints are under `https://www.binance.com/bapi/defi` 
 - **Expected:** every B402 seller returns the V2 `SettlementResponse` with the transaction hash, so a buyer can prove what it paid.
 - **Actual:** there's no `success` and no `transaction`. We read `status: "settled"` as success and found the settlement by scanning U `Transfer` logs from our wallet (0.01 U to `0x3C5f…3eeA` in [0xf397…d524](https://bscscan.com/tx/0xf3972ad59bf1ed815b241cb769f3df4f2e0cf3f1d1c3d54d73854a5b7f66d524)). That block is timestamped 17:50:52, after the `200` arrived at 17:50:51.6, so "settled" was sent before the transfer was mined. The data itself arrives as SSE, in `data:` → `result.content[0].text`, which holds a second JSON document.
 - **Suggested fix:** require the standard `SettlementResponse` (with `transaction`) from B402 merchants, or have B402 expose a lookup by `x402FlowId`.
+
+## 39. B402 success is code `000000000` (nine zeros) in a new envelope; Binance's own demo merchant checks for `000000`
+
+- **Repro:** signed `POST https://web3.binance.com/build/api/v2/b402/supported` with `{"body":{}}` (18:17 UTC; recorded in `packages/core/test/fixtures/b402-supported.json`).
+- **Expected:** the envelope the other keyed endpoints use (`{code: 0, msg, data, success}`) or the public one (`{code: "000000", data, success}`).
+- **Actual:** `{status: "OK", type: "GENERAL", code: "000000000", errorData, data, subData, params}`. The B402 docs do say `000000000`, but it is a third success code and a third envelope shape in one product family. The desk's generic unwrapper rejected it until we accepted any all-zero code. Binance's Stock Agent demo (`stockanalyst/app/agent/b402_client.py`) accepts only `"000000"` for `supported`, `verify` and `settle` and treats anything else as an indeterminate B402 response ([#37](#37-the-bnb-stock-agent-rejects-valid-agentic-wallet-u-payments-with-a-bare-payment_rejected)).
+- **Suggested fix:** one success code across the Web3 APIs, or at least a boolean `success` in the B402 envelope; align the demo merchant with the documented code.
+
+## 40. `/supported` names tokens only by EIP-712 domain name, with no asset address, yet says not to hardcode names
+
+- **Repro:** same call as #39. Each of the 10 kinds is `{x402Version, scheme, network, extra: {name, version, assetTransferMethod, signerAddress, spenderAddress?}}`, for example `extra.name: "United Stables"`. No kind carries the token contract.
+- **Expected:** an `asset` address per kind, because the merchant's `paymentRequirements.asset` must be the token contract, and the docs warn: "Do not hardcode `signerAddress`, `spenderAddress`, EIP-712 `name`, or `version`."
+- **Actual:** to build requirements, a merchant must map the domain name to an address itself: "United Stables" to `0xcE24…6666` (U), "World Liberty Financial USD" to `0x8d0D…8B0d` (USD1). That is exactly the hardcoding the docs warn against, and a rename would silently drop the token from our 402. The desk keeps that table in one place (`B402_TOKENS`) and covers it with a test built from the recorded `/supported`.
+- **Suggested fix:** add `asset` (and `decimals`) to every kind.
