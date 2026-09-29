@@ -21,11 +21,20 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 | 3 | Guarded mainnet fills via `baw` with receipts | done |
 | 4 | Web desk: radar, Truth Cards, proof ledger, DX log | done |
 | 5 | Agentic Wallet and BNB Agent Studio integrations: CI (5.1), gated wallet trading (5.2), the x402 buyer (5.3), the B402 seller with ERC-8004 identity (5.4), the MCP server, Studio agent and first paid sale (5.5), and all of it on `/proof` (5.6) | done |
-| 6 | Ship: polish, demo, DX report | planned |
+| 6 | Ship: site polish and the [DX report](docs/DX_REPORT.md) done; demo video and submission on 2026-10-10 | in progress |
 
 ## For judges
 
-Each line is one integration and where to see it working. Every on-chain claim links to BscScan from [`/proof`](https://executable-gap-desk.vercel.app/proof).
+**In 60 seconds, with nothing to install:**
+
+1. Open [the radar](https://executable-gap-desk.vercel.app), which is sorted by displayed gap: the 20 loudest gaps are all xStocks venues the gate blocks.
+2. Open [MSTR's Truth Card](https://executable-gap-desk.vercel.app/t/MSTR): every venue is quoted live at $25 and gated, and MSTRx's 11% discount turns out to have no liquidity.
+3. Open [`/proof`](https://executable-gap-desk.vercel.app/proof): mainnet fills, refusals, x402 payments, the B402 sale and the ERC-8004 identity, each with its BscScan link.
+4. Run `curl -i https://executable-gap-desk.vercel.app/x402/gap/NVDA` to see the gate for sale over x402 (HTTP 402 with U and USD1 payment requirements).
+
+**Demo video:** will be linked here with the submission on 2026-10-10.
+
+Each line below is one integration and where to see it working. Every on-chain claim links to BscScan from [`/proof`](https://executable-gap-desk.vercel.app/proof).
 
 - **The desk:** [the radar](https://executable-gap-desk.vercel.app) shows every BSC tokenized stock with displayed vs executable gap; [a Truth Card](https://executable-gap-desk.vercel.app/t/MSTR) quotes each venue live and shows why MSTRx's displayed discount is a BLOCK.
 - **Proof ledger:** [`/proof`](https://executable-gap-desk.vercel.app/proof) lists the mainnet fills, wallet market orders, refusals, x402 purchases and the sale, and the ERC-8004 registration, each from a committed receipt.
@@ -35,7 +44,7 @@ Each line is one integration and where to see it working. Every on-chain claim l
 - **Agent identity:** ERC-8004 agent `360456` on BSC mainnet, whose `agentURI` is the [agent card](https://executable-gap-desk.vercel.app/.well-known/agent-card.json) ([Agent identity](#agent-identity-erc-8004)).
 - **MCP:** five read-only tools for Cursor or any MCP client, set up by [`.cursor/mcp.json`](.cursor/mcp.json) ([MCP server](#mcp-server-cursor)).
 - **BNB Agent Studio:** a `bag init` project serving the gate over A2A, MCP and x402 with `bag dev` ([Studio agent](#bnb-agent-studio-agent)).
-- **Developer experience:** 42 reproducible findings with suggested fixes, on the [DX page](https://executable-gap-desk.vercel.app/dx) and in [`docs/DX_LOG.md`](docs/DX_LOG.md).
+- **Developer experience:** 42 reproducible findings with suggested fixes, on the [DX page](https://executable-gap-desk.vercel.app/dx) and in [`docs/DX_LOG.md`](docs/DX_LOG.md), summarized in the [DX report](docs/DX_REPORT.md).
 
 ## Quickstart
 
@@ -431,7 +440,15 @@ NVDAB and AAPLB are the tokens that filled during the regular session above. The
 
 We keep a running log of every rough edge we hit in the Binance Web3 APIs, the Skills Hub and the Agentic Wallet CLI, each with a reproduction and a suggested fix: [`docs/DX_LOG.md`](docs/DX_LOG.md) (42 entries so far; #22–#28 come from the live fills, #29 from deploying the web desk, #30–#33 from trading through the Agentic Wallet, #34–#38 from paying over x402, #39–#40 from selling over B402, #41–#42 from the Studio agent and the paid sale). The [DX page](https://executable-gap-desk.vercel.app/dx) lists them by severity.
 
-_The full DX report will be summarized here in Part 6._
+The [DX report](docs/DX_REPORT.md) condenses the log into answers for the hackathon's DX form, led by the ten issues that cost the most:
+
+- **Displayed data you can't trust:** xStocks prices are stale with no timestamp (#7), and `/quote` returns near-total-loss routes as successful (#17).
+- **Quotes that don't execute:** fresh LiquidMesh quotes revert in their own simulation (#24), and `/swap`'s fixed gas limit was too low for a live swap (#23).
+- **Docs that disagree with the API:** agents get a WAF challenge instead of `llms-full.txt` (#1), and Ondo quotes are documented as RFQ but come back as SWAP (#16).
+- **Agent-safety gaps in `baw`:** `market-order swap` has no preview (#30) and returns an order id it can't find (#31), and `x402-payment preview` reports an option as ready while it still needs an approval (#34).
+- **Agent-to-agent payments:** the BNB Stock Agent rejects valid payments without a reason (#37), and `wallet send` only reaches address-book recipients, which no CLI command can add (#41).
+
+Each comes with a suggested fix. The single change that would have saved the most time is a response schema, with units, for `/quote`, `/swap` and `/simulate`.
 
 ## License
 

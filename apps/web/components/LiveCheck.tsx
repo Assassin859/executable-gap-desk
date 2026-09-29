@@ -13,7 +13,23 @@ interface LiveCheck {
   ticker: PublicTicker;
 }
 
-export function LiveCheckPanel({ ticker }: { ticker: string }) {
+function VenueSkeleton() {
+  return (
+    <div className="animate-pulse rounded-lg border border-line bg-panel p-4" aria-hidden>
+      <div className="flex items-center justify-between">
+        <div className="h-5 w-24 rounded bg-line" />
+        <div className="h-5 w-12 rounded bg-line" />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <div className="h-9 rounded bg-line" />
+        <div className="h-9 rounded bg-line" />
+      </div>
+      <div className="mt-4 h-4 w-3/4 rounded bg-line" />
+    </div>
+  );
+}
+
+export function LiveCheckPanel({ ticker, venues = 3 }: { ticker: string; venues?: number }) {
   const [data, setData] = useState<LiveCheck | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<"base" | "ladder" | null>("base");
@@ -66,8 +82,22 @@ export function LiveCheckPanel({ ticker }: { ticker: string }) {
         </div>
       </div>
 
-      {error && <p className="text-sm text-caution">{error}</p>}
-      {!data && !error && <p className="text-sm text-muted">Quoting every venue at $25…</p>}
+      {error && (
+        <p className="text-sm text-caution">
+          {error}
+          {data && " Showing the previous check below."}
+        </p>
+      )}
+      {!data && !error && (
+        <div className="space-y-3" role="status">
+          <p className="text-sm text-muted">Quoting every venue at $25 and running the gate (a few seconds)…</p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: venues }, (_, i) => (
+              <VenueSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {data && t && (
         <>
@@ -84,7 +114,7 @@ export function LiveCheckPanel({ ticker }: { ticker: string }) {
               <span className="text-block">No venue is safe to trade right now.</span>
             )}
           </p>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className={`grid gap-3 transition-opacity md:grid-cols-2 lg:grid-cols-3 ${loading ? "opacity-50" : ""}`} aria-busy={loading !== null}>
             {t.venues.map((v) => (
               <VenueCard key={v.symbol} v={v} best={v.symbol === t.best} reference={t.reference} />
             ))}

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ExecutePanel } from "@/components/ExecutePanel";
 import { LiveCheckPanel } from "@/components/LiveCheck";
 import { VenueCard } from "@/components/VenueCard";
@@ -16,13 +16,23 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { ticker } = await params;
-  return { title: `${ticker.toUpperCase()} Truth Card · Executable Gap Desk` };
+  const t = snapshotTicker(ticker);
+  return { title: t ? `${t.ticker} Truth Card · Executable Gap Desk` : "Not found · Executable Gap Desk" };
+}
+
+function tickerForSymbol(symbol: string): string | undefined {
+  const s = symbol.toUpperCase();
+  return SNAPSHOT.tickers.find((t) => t.venues.some((v) => v.symbol.toUpperCase() === s))?.ticker;
 }
 
 export default async function TruthCardPage({ params }: Params) {
   const { ticker } = await params;
   const t = snapshotTicker(ticker);
-  if (!t) notFound();
+  if (!t) {
+    const owner = tickerForSymbol(decodeURIComponent(ticker));
+    if (owner) redirect(`/t/${owner}`);
+    notFound();
+  }
   const best = t.best ? t.venues.find((v) => v.symbol === t.best) : undefined;
   const loudest = [...t.venues].filter((v) => v.displayedGapPct !== null).sort((a, b) => Math.abs(b.displayedGapPct!) - Math.abs(a.displayedGapPct!))[0];
   const executeEnabled = process.env.EXECUTE_MODE === "local";
@@ -66,7 +76,7 @@ export default async function TruthCardPage({ params }: Params) {
         </div>
       </section>
 
-      <LiveCheckPanel ticker={t.ticker} />
+      <LiveCheckPanel ticker={t.ticker} venues={t.venues.length} />
 
       {executeEnabled && <ExecutePanel venues={t.venues.map((v) => ({ symbol: v.symbol, platform: v.platform }))} defaultSymbol={best?.symbol ?? null} />}
 
