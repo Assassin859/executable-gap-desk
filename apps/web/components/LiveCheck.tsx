@@ -1,12 +1,12 @@
 "use client";
 
 import type { PublicSession, PublicTicker } from "@gapdesk/core";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SESSION_LABEL, ago, pct } from "@/lib/format";
 import { VenueCard } from "./VenueCard";
 import { VerdictChip } from "./VerdictChip";
 
-interface LiveCheck {
+export interface LiveCheck {
   checkedAt: number;
   ladder: boolean;
   session: PublicSession | null;
@@ -29,11 +29,15 @@ function VenueSkeleton() {
   );
 }
 
-export function LiveCheckPanel({ ticker, venues = 3 }: { ticker: string; venues?: number }) {
+export function LiveCheckPanel({ ticker, venues = 3, onData }: { ticker: string; venues?: number; onData?: (check: LiveCheck) => void }) {
   const [data, setData] = useState<LiveCheck | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<"base" | "ladder" | null>("base");
   const [now, setNow] = useState(() => Date.now());
+  const onDataRef = useRef(onData);
+  useEffect(() => {
+    onDataRef.current = onData;
+  }, [onData]);
 
   const load = useCallback(
     async (ladder: boolean) => {
@@ -44,6 +48,7 @@ export function LiveCheckPanel({ ticker, venues = 3 }: { ticker: string; venues?
         const body = (await r.json()) as LiveCheck & { error?: string };
         if (!r.ok) throw new Error(body.error ?? `HTTP ${r.status}`);
         setData(body);
+        onDataRef.current?.(body);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {

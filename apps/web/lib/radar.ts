@@ -88,8 +88,9 @@ export interface Example {
 }
 
 /**
- * Two "start here" cards: the biggest displayed discount that cannot be bought (a blocked venue 3%+ off
- * while another venue of the same stock is GO), and the worst thin-pool fill behind a normal-looking price.
+ * Two "start here" cards: the biggest displayed discount that cannot be bought (a blocked venue displaying
+ * 3%+ below the stock while another venue of the same stock is GO; a premium is never a "discount"), and the
+ * worst thin-pool fill behind a normal-looking price.
  */
 export function pickExamples(s: PublicSnapshot): { mirage: Example | null; thinPool: Example | null } {
   let mirage: Example | null = null;
@@ -107,8 +108,9 @@ export function pickExamples(s: PublicSnapshot): { mirage: Example | null; thinP
         best: best ? { symbol: best.symbol, executableGapPct: best.executableGapPct } : null,
         reason,
       };
-      const d = Math.abs(v.displayedGapPct ?? 0);
-      if (best?.verdict === "GO" && d >= 0.03 && d < 0.5 && (!mirage || d > Math.abs(mirage.displayedGapPct ?? 0))) mirage = ex;
+      const g = v.displayedGapPct ?? 0;
+      const d = Math.abs(g);
+      if (best?.verdict === "GO" && g <= -0.03 && g > -0.5 && (!mirage || g < (mirage.displayedGapPct ?? 0))) mirage = ex;
       const e = v.executableGapPct ?? 0;
       if (d < 0.01 && e > 0.5 && e < 20 && (!thinPool || e > (thinPool.executableGapPct ?? 0))) thinPool = ex;
     }

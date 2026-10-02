@@ -2,7 +2,7 @@
 
 Developer-experience report for **BNB Hack: Tokenized Stocks Edition**, laid out in the same order as the [DX form](https://forms.gle/EUQ39xf54GHjC2ys5) so each answer can be pasted into its field. Every issue cited as "DX #n" has a reproduction, expected vs actual behaviour and a suggested fix in [`DX_LOG.md`](DX_LOG.md) (42 entries: 15 High, 21 Medium, 6 Low), also browsable on the [DX page](https://executable-gap-desk.vercel.app/dx). All of it was hit on BSC mainnet on 2026-09-29, with receipts in [`receipts/`](../receipts/).
 
-Lines marked **[fill in]** are facts only the team can give.
+Ratings are on a 1-5 scale.
 
 ## Top issues at a glance
 
@@ -26,7 +26,7 @@ The ten that cost us the most, or would hurt other builders most:
 ## 1. Submission details
 
 - **Team or project name:** Executable Gap Desk
-- **Contact email:** [fill in]
+- **Contact email:** given in the form, not in this public repo.
 - **Public repository URL:** https://github.com/Assassin859/executable-gap-desk
 - **Binance Web3 API modules and tools used:**
   - Public RWA endpoints: stock list, dynamic v2, market status, asset market status.
@@ -38,15 +38,15 @@ The ten that cost us the most, or would hurt other builders most:
   - BNB Agent Studio CLI `bag` 0.0.14.
   - ERC-8004 IdentityRegistry on BSC mainnet (agent 360456).
   - The U stablecoin (EIP-3009) for x402.
-- **Team size:** [fill in]
-- **Most experienced member's time building on Web3:** [fill in]
-- **Used the Binance Web3 API before the hackathon:** [fill in]
+- **Team size:** 1 (solo).
+- **Most experienced member's time building on Web3:** 1-3 years.
+- **Used the Binance Web3 API before the hackathon:** yes.
 
 ## 2. Onboarding
 
-- **Time from opening the docs to the first successful API call:** [fill in]. The public RWA endpoints worked the same day, once we found they need `User-Agent: binance-web3/1.1 (Skill)` and `Accept-Encoding: identity`.
-- **Time to a working API key:** [fill in]. B402 needed a separate onboarding with a write-once `payTo`.
-- **Onboarding rating:** [fill in]
+- **Time from opening the docs to the first successful API call:** under 30 minutes, once we found the public RWA endpoints need `User-Agent: binance-web3/1.1 (Skill)` and `Accept-Encoding: identity`.
+- **Time to a working API key:** under 15 minutes. B402 needed a separate onboarding with a write-once `payTo`.
+- **Onboarding rating:** 3. The first calls were quick; the WAF on `llms-full.txt` and the skill's wrong provider list cost the most time.
 - **Where we got stuck:**
   - The docs meant for agents (`llms-full.txt`) returned an empty WAF challenge to our coding agent (DX #1), so we had to fetch them in a browser and vendor a copy.
   - The skill told us Ondo was the only provider, while the API returns five platform types (DX #2).
@@ -62,7 +62,7 @@ The ten that cost us the most, or would hurt other builders most:
 
 ## 3. Documentation issues
 
-- **Documentation rating:** [fill in]
+- **Documentation rating:** 2. There are no response schemas, and several statements are contradicted by the live API (below).
 - **Documentation errors found:**
   - Ondo is "always routed via 3-vendor RFQ" (all live quotes were SWAP; DX #16).
   - `40374` is filed only under Ondo/BStock RFQ errors, but it is what every xStock returns (DX #8).
@@ -91,7 +91,7 @@ The ten that cost us the most, or would hurt other builders most:
 
 ## 4. API pitfalls
 
-- **Reliability and stability rating:** [fill in]. The endpoints were up throughout; the problems were in data and semantics, not uptime.
+- **Reliability and stability rating:** 3. The endpoints were up throughout; the problems were in data and semantics, not uptime.
 - **Edge cases and unexpected behaviour:**
   - Near-total-loss routes quoted as successful (DX #17).
   - Fresh quotes that revert in simulation (DX #24).
@@ -127,12 +127,12 @@ The ten that cost us the most, or would hurt other builders most:
 ## 5. AI stack feedback
 
 - **Parts used:**
-  - Cursor agent mode for the whole build ([fill in]: models used).
+  - Cursor agent mode for the whole build, on Cursor's Auto model routing.
   - Binance Skills Hub skills as agent context.
   - The Agentic Wallet (`baw`) as the only signer: trades, market orders, x402 payments and the ERC-8004 registration.
   - BNB Agent Studio (`bag`) for an A2A / MCP / x402 agent.
   - Our own MCP server over the gate, for Cursor.
-- **AI execution layer rating:** [fill in]
+- **AI execution layer rating:** 3. Keys never leave the wallet and simulation is real, but the agent-safety gaps below need fixing before agents trade unattended.
 - **What worked well:**
   - Keys never leave the wallet.
   - `contract-call preview` then `execute` gives a real simulation step with risk flags before anything is signed.
@@ -160,11 +160,12 @@ The ten that cost us the most, or would hurt other builders most:
 ## 6. Tokenized-stock specifics
 
 - **Platforms:** Ondo (`…on`), xStocks (`…x`) and bStocks (`…B`) on BSC.
-- **Liquidity depth:** a $25 quote into every venue (666 venues, 512 tickers):
+- **Liquidity depth:** the first full sweep, a $25 quote into every venue (2026-09-29: 666 venues, 512 tickers):
   - 454 GO, 14 CAUTION, 198 BLOCK.
   - 165 venues had no liquidity at all (`40374`), including **all 128 xStocks**, 23 Ondo and 14 bStocks.
   - Another 33 routes filled but failed the gate, 21 of them at +100% or worse through thin pools.
   - 442 of 512 tickers have at least one venue within 0.75% of the stock at $25.
+  - A second sweep on 2026-10-02 (675 venues) found every bStock quoting and 484 GO, but still no xStock liquidity at all: all 130 returned `40374`.
 - **Slippage at our sizes ($0.95–$2.50):**
   - The LiquidMesh fills landed within 0.02% of the quote.
   - Wallet market-order sells matched the gated quote to 0.0001%.
@@ -178,7 +179,7 @@ The ten that cost us the most, or would hurt other builders most:
 - **Gaps between on-chain price and the reference:**
   - Displayed gaps are often fiction. MSTRx displayed −10.9% for hours without moving (stale; DX #7) and can't be bought (`40374`).
   - GMEx displays +894%, which looks like a missed corporate action.
-  - The reverse trap: AAOIB displays within 0.2% of the stock but a $25 order fills at +397%, and MSFTon's route implies about $1B per share (DX #17).
+  - The reverse trap: on Sep 29 AAOIB displayed within 0.2% of the stock but a $25 order filled at +397% (on Oct 2, SNDKon did the same at +811%), and MSFTon's route implies about $1B per share (DX #17).
   - Executable gaps on liquid venues are small: 454 venues filled a $25 order within 0.75% of the stock.
 - **Differences between representations of the same ticker:**
   - Per-share pricing needs the live `sharesMultiplier` from dynamic v2; the list says 1 for every xStock (DX #15).
@@ -209,6 +210,6 @@ The ten that cost us the most, or would hurt other builders most:
     - stable error codes.
   - `asset` and `decimals` in B402 `/supported` (DX #40).
 - **The one change that would have saved the most time:** response schemas with units for `/quote`, `/swap` and `/simulate`. About a third of our DX entries came from guessing what a field means.
-- **Will we keep building on the Binance Web3 API:** [fill in]
-- **Why:** [fill in]
+- **Will we keep building on the Binance Web3 API:** yes.
+- **Why:** an executable-price gate is useful beyond the hackathon, and the Agentic Wallet plus x402 make it something other agents can pay for.
 - **Anything else:** the stack has everything needed for an agent that can prove its trades are real: RWA data, the aggregator, simulation, a wallet that never exposes keys, x402 in both directions, and on-chain identity. The gaps are in truthfulness signals (stale prices, silent near-total-loss routes) and in agent-safety affordances (preview before every state change, machine-readable errors). Executable Gap Desk exists because the displayed price and the executable price disagree, and an agent can't tell which one to trust from the API alone.

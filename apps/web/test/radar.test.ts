@@ -76,6 +76,13 @@ describe("radar rows", () => {
     expect(countTraps(snap)).toBe(1);
   });
 
+  it("never calls a displayed premium a discount", () => {
+    const premium = ticker("NVO", [venue("NVOon"), venue("NVOx", { platform: "xstocks", verdict: "BLOCK", displayedGapPct: 0.291, executableGapPct: null, reasons: blockReason("no liquidity") })], "NVOon");
+    const discount = ticker("META", [venue("METAon"), venue("METAx", { platform: "xstocks", verdict: "BLOCK", displayedGapPct: -0.09, executableGapPct: null, reasons: blockReason("no liquidity") })], "METAon");
+    expect(pickExamples({ ...snap, tickers: [premium] }).mirage).toBeNull();
+    expect(pickExamples({ ...snap, tickers: [premium, discount] }).mirage).toMatchObject({ symbol: "METAx", displayedGapPct: -0.09 });
+  });
+
   it("tells a region refusal (40304 on every venue) apart from real venue failures", () => {
     const refused = { ok: false as const, ts: 0, usd: 25, mode: null, vendor: null, route: [], tokensOut: null, networkFeeUsd: null, reason: "UNKNOWN_ERROR", code: "40304", message: "Service not available due to compliance restriction" };
     const liquidity = { ...refused, reason: "NO_LIQUIDITY", code: "40374", message: "no liquidity" };

@@ -96,11 +96,11 @@ Best venue: MSTRB (GO, +0.27% vs the stock, $155.97/share)
 
 The 11% "discount" can't be bought. The only venue that fills does so at +0.27%.
 
-The opposite trap is worse, because the displayed price looks fine. AAOIB displays within 0.2% of the stock, but the aggregator routes $25 through a thin Uniswap V4 pool and fills at **+397%** (API price impact 0.96). The gate blocks it for three reasons: the gap is too wide, displayed and executable disagree, and the fill is far above the displayed price. `gap quote MSFTon --usd 25` shows the extreme case: about $1 billion per share.
+The opposite trap is worse, because the displayed price looks fine. On 2026-09-29 AAOIB displayed within 0.2% of the stock, but the aggregator routed $25 through a thin Uniswap V4 pool and filled at **+397%** (API price impact 0.96). The gate blocked it for three reasons: the gap is too wide, displayed and executable disagree, and the fill is far above the displayed price. By Oct 2 AAOIB's liquidity had improved and it was GO, while SNDKon showed the same trap: displayed at the stock price, filling $25 at +811%, with SNDKB GO next to it. `gap quote MSFTon --usd 25` showed the extreme case: about $1 billion per share.
 
 ### Full sweep
 
-The sweep behind the web radar (2026-09-29 15:57 UTC, regular session, $25 per venue) covered every BSC tokenized stock: 512 tickers and 666 venues (458 Ondo, 128 xStocks, 80 bStocks) in 173 s:
+The first full sweep (2026-09-29 15:57 UTC, regular session, $25 per venue) covered every BSC tokenized stock: 512 tickers and 666 venues (458 Ondo, 128 xStocks, 80 bStocks) in 173 s:
 
 | Verdict | Venues | Main reasons |
 |---------|--------|--------------|
@@ -109,6 +109,8 @@ The sweep behind the web radar (2026-09-29 15:57 UTC, regular session, $25 per v
 | BLOCK | 198 | 165 quotes with no liquidity (`40374`: all 128 xStocks, 23 Ondo, 14 bStocks); 33 routes that fill but fail the gate, 21 of them at +100% or worse through thin pools |
 
 442 of the 512 tickers have at least one safe venue; 117 are listed on two or more platforms. Not one xStock can be bought with a $25 aggregator order, whatever its displayed price. Every successful quote came back as `SWAP` via LiquidMesh; see [DX log #16](docs/DX_LOG.md#16-docs-say-ondo-always-routes-via-rfq-live-quotes-are-all-swap).
+
+The radar now serves a newer sweep (2026-10-02 18:53 UTC, regular session): 517 tickers and 675 venues (458 Ondo, 130 xStocks, 87 bStocks), 484 GO, 19 CAUTION and 172 BLOCK, with 452 tickers having a safe venue. Every bStock now quotes, but still not one xStock: all 130 return `40374`.
 
 ### Gate policy
 
@@ -280,11 +282,11 @@ Proof, 18:52 UTC ([receipt](receipts/studio/2026-09-29T18-52-57-725Z-bag-dev-pro
 [executable-gap-desk.vercel.app](https://executable-gap-desk.vercel.app) is the same core in a browser:
 
 - **Radar** (`/`): every BSC tokenized stock from the full sweep, with the displayed gap next to the executable one and the verdict. Two example cards show the traps (a displayed discount with no liquidity, and a normal-looking price that fills hundreds of percent high). Search, sort, a "listed on 2+ platforms" filter and a hide-BLOCK toggle (off by default, so the traps stay visible). A badge shows the live US session and the countdown to the next open or close.
-- **Truth Card** (`/t/NVDA`): the snapshot row for each venue, then fresh $25 quotes through the gate with plain-English reasons and the best venue. "Add $100 / $500" measures price impact.
+- **Truth Card** (`/t/NVDA`): the stock price in the header (refreshed every 5 minutes, then taken from the live check), fresh $25 quotes through the gate with plain-English reasons and the best venue, and the last full sweep folded underneath. "Add $100 / $500" measures price impact.
 - **Proof** (`/proof`): the mainnet fills, wallet market orders, limit attempts and refusals from [`receipts/exec/`](receipts/exec/); the x402 sale and B402 self-test; x402 purchases from [`receipts/x402/`](receipts/x402/); and the ERC-8004 registration. All with BscScan links.
 - **DX log** (`/dx`): the entries of [`docs/DX_LOG.md`](docs/DX_LOG.md), highest severity first.
 
-The radar reads a committed snapshot ([`apps/web/data/snapshot.json`](apps/web/data/snapshot.json), about 520 KB). Live Truth Card quotes use the keyed API from the server, with the key held in Vercel environment variables, cached for 60 s and limited to 12 live checks per minute per visitor. The functions run in Mumbai (`bom1`) because the quote API refuses US regions with `40304` ([DX #29](docs/DX_LOG.md#29-quote-answers-40304-to-us-cloud-regions-and-the-docs-dont-list-it-for-trading)).
+The radar reads a committed snapshot ([`apps/web/data/snapshot.json`](apps/web/data/snapshot.json), about 520 KB), re-swept during the US regular session. Truth Card pages are rendered on demand and refreshed at most every 5 minutes, reading the stock price from the public dynamic endpoint. Live Truth Card quotes use the keyed API from the server, with the key held in Vercel environment variables, cached for 60 s and limited to 12 live checks per minute per visitor. The functions run in Mumbai (`bom1`) because the quote API refuses US regions with `40304` ([DX #29](docs/DX_LOG.md#29-quote-answers-40304-to-us-cloud-regions-and-the-docs-dont-list-it-for-trading)).
 
 ```bash
 pnpm web:dev                     # http://localhost:3000, uses .env.local for live quotes

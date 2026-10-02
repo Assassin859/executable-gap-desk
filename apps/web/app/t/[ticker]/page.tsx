@@ -2,16 +2,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ExecutePanel } from "@/components/ExecutePanel";
-import { LiveCheckPanel } from "@/components/LiveCheck";
+import { TruthCardLive, type HeaderPrice } from "@/components/TruthCardLive";
 import { VenueCard } from "@/components/VenueCard";
 import { VerdictChip } from "@/components/VerdictChip";
-import { PLATFORM_LABEL, SESSION_LABEL, pct, usd, utc } from "@/lib/format";
+import { PLATFORM_LABEL, SESSION_LABEL, pct, utc } from "@/lib/format";
+import { liveReference } from "@/lib/server";
 import { SNAPSHOT, snapshotTicker } from "@/lib/snapshot";
 
 type Params = { params: Promise<{ ticker: string }> };
 
+// Rendered on first request and re-rendered at most every 5 minutes, so the header's stock price stays fresh
+// without 500+ price calls at build time.
+export const revalidate = 300;
+
 export function generateStaticParams() {
-  return SNAPSHOT.tickers.map((t) => ({ ticker: t.ticker }));
+  return [];
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -36,6 +41,8 @@ export default async function TruthCardPage({ params }: Params) {
   const best = t.best ? t.venues.find((v) => v.symbol === t.best) : undefined;
   const loudest = [...t.venues].filter((v) => v.displayedGapPct !== null).sort((a, b) => Math.abs(b.displayedGapPct!) - Math.abs(a.displayedGapPct!))[0];
   const executeEnabled = process.env.EXECUTE_MODE === "local";
+  const live = await liveReference(t);
+  const initial: HeaderPrice = live ? { price: live.price, at: live.at, source: "live" } : { price: t.reference, at: SNAPSHOT.builtAt, source: "sweep" };
 
   return (
     <div className="space-y-6">
@@ -43,40 +50,39 @@ export default async function TruthCardPage({ params }: Params) {
         ← Radar
       </Link>
 
-      <section className="space-y-2">
-        <h1 className="flex flex-wrap items-baseline gap-3 text-3xl font-semibold tracking-tight">
-          {t.ticker}
-          <span className="num text-lg font-normal text-muted">{t.reference ? `stock ${usd(t.reference)}` : "no stock price"}</span>
-        </h1>
-        <p className="max-w-3xl text-muted">
-          {t.venues.length} BSC {t.venues.length === 1 ? "venue" : "venues"}: {t.venues.map((v) => `${v.symbol} (${PLATFORM_LABEL[v.platform]})`).join(", ")}.{" "}
-          {loudest && Math.abs(loudest.displayedGapPct ?? 0) >= 0.03 && (
-            <>
-              {loudest.symbol} displays {pct(loudest.displayedGapPct)} vs the stock{loudest.verdict === "BLOCK" ? ", and the gate blocks it." : "."}{" "}
-            </>
-          )}
-          {best ? (
-            <>
-              The venue to use is <span className="font-mono font-semibold text-white">{best.symbol}</span> <VerdictChip verdict={best.verdict} small />, filling at {pct(best.executableGapPct)} vs the stock.
-            </>
-          ) : (
-            <span className="text-block">No venue passed the gate.</span>
-          )}
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="font-semibold">
-          $25 sweep <span className="text-sm font-normal text-muted">at {utc(SNAPSHOT.builtAt)} ({t.session ? SESSION_LABEL[t.session] : "session unknown"})</span>
-        </h2>
+      <TruthCardLive
+        ticker={t.ticker}
+        venues={t.venues.length}
+        initial={initial}
+        intro={
+          <p className="max-w-3xl text-muted">
+            {t.venues.length} BSC {t.venues.length === 1 ? "venue" : "venues"}: {t.venues.map((v) => `${v.symbol} (${PLATFORM_LABEL[v.platform]})`).join(", ")}. In the last full sweep,{" "}
+            {loudest && Math.abs(loudest.displayedGapPct ?? 0) >= 0.03 && (
+              <>
+                {loudest.symbol} displayed {pct(loudest.displayedGapPct)} vs the stock{loudest.verdict === "BLOCK" ? " and the gate blocked it" : ""};{" "}
+              </>
+            )}
+            {best ? (
+              <>
+                the venue to use was <span className="font-mono font-semibold text-white">{best.symbol}</span> <VerdictChip verdict={best.verdict} small />, filling at {pct(best.executableGapPct)} vs the stock.
+              </>
+            ) : (
+              <span className="text-block">no venue passed the gate.</span>
+            )}
+          </p>
+        }
+        sweepTitle={
+          <>
+            Last full sweep <span className="text-sm font-normal text-muted">at {utc(SNAPSHOT.builtAt)} ({t.session ? SESSION_LABEL[t.session] : "session unknown"}), $25 per venue</span>
+          </>
+        }
+      >
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {t.venues.map((v) => (
             <VenueCard key={v.symbol} v={v} best={v.symbol === t.best} reference={t.reference} />
           ))}
         </div>
-      </section>
-
-      <LiveCheckPanel ticker={t.ticker} venues={t.venues.length} />
+      </TruthCardLive>
 
       {executeEnabled && <ExecutePanel venues={t.venues.map((v) => ({ symbol: v.symbol, platform: v.platform }))} defaultSymbol={best?.symbol ?? null} />}
 

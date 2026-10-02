@@ -1,7 +1,7 @@
 import "server-only";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { checkTicker, credentialsFromEnv, getMarketSession, toPublicSession, toPublicTicker, type PublicSession, type PublicTicker } from "@gapdesk/core";
+import { checkTicker, credentialsFromEnv, getDynamic, getMarketSession, referenceFor, toPublicSession, toPublicTicker, type PublicSession, type PublicTicker, type VenuePrice } from "@gapdesk/core";
 import { createThrottle, createTtlCache } from "./cache";
 
 /** `next dev` / `next build` run with apps/web as the working directory. */
@@ -49,6 +49,20 @@ export const isCachedCheck = (ticker: string, ladder: boolean): boolean => check
 
 export function liveSession(): Promise<PublicSession | null> {
   return sessions.get("session", async () => toPublicSession(await getMarketSession()));
+}
+
+/**
+ * The underlying stock price from the public dynamic endpoint (no key). Only the stock price is read, so the
+ * venue multiplier is irrelevant here. Null when no venue reports one or the endpoint is slow or down.
+ */
+export async function liveReference(t: PublicTicker, timeoutMs = 5000): Promise<{ price: number; at: number } | null> {
+  const fetchAll = Promise.allSettled(t.venues.map((v) => getDynamic({ ticker: t.ticker, platform: v.platform, symbol: v.symbol, address: v.address, multiplier: 1 })));
+  const timeout = new Promise<null>((r) => setTimeout(() => r(null), timeoutMs));
+  const settled = await Promise.race([fetchAll, timeout]);
+  if (!settled) return null;
+  const prices = settled.flatMap((s): VenuePrice[] => (s.status === "fulfilled" ? [s.value] : []));
+  const ref = referenceFor(prices);
+  return ref.price ? { price: ref.price, at: Date.now() } : null;
 }
 
 export function clientIp(headers: Headers): string {

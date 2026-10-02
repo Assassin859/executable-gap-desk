@@ -37,6 +37,16 @@ export default function ProofPage() {
   const x402 = buildX402Ledger(loadX402Receipts(), loadSales(), loadOnchainAnnotations());
   const identity = identityRow(loadIdentity());
   const selftest = selftestRow(loadB402Selftest());
+  const sells = fills.filter((f) => f.side === "sell").length;
+  const paidPurchases = x402.purchases.filter((p) => p.outcome === "PAID");
+  const summary: { href: string; value: string; label: string }[] = [
+    { href: "#fills", value: String(fills.length), label: `gated fills (${fills.length - sells} buys, ${sells} sells)` },
+    { href: "#onchain", value: String(ledger.onChain.reduce((n, r) => n + r.txs.length, 0)), label: `on-chain transactions in ${ledger.onChain.length} runs` },
+    { href: "#refusals", value: String(ledger.refusals.length), label: "refused before signing" },
+    { href: "#selling", value: String(x402.sales.length), label: "x402 sale settled by B402" },
+    { href: "#buying", value: String(paidPurchases.length), label: "x402 data purchase paid" },
+    ...(identity ? [{ href: "#identity", value: `#${identity.agentId}`, label: "ERC-8004 agent" }] : []),
+  ];
 
   return (
     <div className="space-y-8">
@@ -55,10 +65,18 @@ export default function ProofPage() {
           </a>
           .
         </p>
+        <nav aria-label="Proof sections" className="grid grid-cols-2 gap-2 pt-2 sm:grid-cols-3 lg:grid-cols-6">
+          {summary.map((s) => (
+            <a key={s.href} href={s.href} className="rounded-lg border border-line bg-panel px-3 py-2 transition hover:border-accent">
+              <div className="num text-xl font-semibold">{s.value}</div>
+              <div className="text-xs text-muted">{s.label}</div>
+            </a>
+          ))}
+        </nav>
       </section>
 
       {fills.length > 0 && (
-        <section className="grid gap-3 sm:grid-cols-2">
+        <section id="fills" className="grid scroll-mt-4 gap-3 sm:grid-cols-2">
           {fills.map((f) => (
             <div key={f.id} className="rounded-lg border border-go/40 bg-panel p-4">
               <div className="flex items-center justify-between">
@@ -82,7 +100,7 @@ export default function ProofPage() {
         </section>
       )}
 
-      <section className="space-y-2">
+      <section id="onchain" className="scroll-mt-4 space-y-2">
         <h2 className="font-semibold">On-chain transactions</h2>
         <div className="overflow-x-auto rounded-lg border border-line">
           <table className="w-full text-sm">
@@ -132,12 +150,15 @@ export default function ProofPage() {
       </section>
 
       {ledger.limits.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="font-semibold">Limit orders</h2>
-          <p className="text-sm text-muted">
+        <details id="limits" className="group scroll-mt-4 space-y-2">
+          <summary className="cursor-pointer list-none font-semibold">
+            <span className="mr-1 inline-block text-muted transition group-open:rotate-90">›</span>
+            Limit orders <span className="text-sm font-normal text-muted">({ledger.limits.length}, nothing on chain unless one triggers)</span>
+          </summary>
+          <p className="mt-2 text-sm text-muted">
             Gap-guarded limit buys through the Agentic Wallet: only on a GO venue, with the trigger under the stock and under the market. Nothing is on chain unless one triggers.
           </p>
-          <ul className="space-y-2">
+          <ul className="mt-2 space-y-2">
             {ledger.limits.map((r) => (
               <li key={r.id} className="rounded-lg border border-line bg-panel p-3 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
@@ -155,10 +176,10 @@ export default function ProofPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
 
-      <section className="space-y-2">
+      <section id="refusals" className="scroll-mt-4 space-y-2">
         <h2 className="font-semibold">Refused before signing</h2>
         <p className="text-sm text-muted">The gate or the simulation stopped these; nothing was broadcast. {ledger.dryRuns} further dry runs simulated without signing.</p>
         <ul className="space-y-2">
@@ -180,7 +201,7 @@ export default function ProofPage() {
       </section>
 
       {(x402.sales.length > 0 || selftest) && (
-        <section className="space-y-2">
+        <section id="selling" className="scroll-mt-4 space-y-2">
           <h2 className="font-semibold">Selling over x402 (B402)</h2>
           <p className="text-sm text-muted">
             The desk&apos;s paid endpoints settle through Binance&apos;s B402 facilitator into the Agentic Wallet. B402 submits the U transfer and pays its gas.
@@ -199,10 +220,21 @@ export default function ProofPage() {
                   block {s.block} · {Number(s.gasUsed).toLocaleString("en-US")} gas at {s.gasPriceGwei} gwei, paid by B402 {shortHash(s.submittedBy)}
                 </p>
                 {!s.independent && (
-                  <p className="mt-2 text-caution">
-                    Self-payment: the buyer was the Agentic Wallet itself ({shortHash(s.buyer)}), so no value changed hands. We couldn&apos;t fund a separate buyer because the
-                    wallet only sends to address-book entries (<DxLink n={41} />).
-                  </p>
+                  <div className="mt-3 space-y-1 rounded-md border border-line p-3">
+                    <p>
+                      <span className="font-semibold text-go">Proves:</span> the deployed endpoint answered 402, then ran B402 Verify, the gate and B402 Settle, and B402 put the
+                      transfer on BSC mainnet.
+                    </p>
+                    <p>
+                      <span className="font-semibold text-caution">Doesn&apos;t prove:</span> an outside buyer. The buyer was the Agentic Wallet itself ({shortHash(s.buyer)}), so
+                      no value changed hands; the wallet only sends to address-book entries, so we couldn&apos;t fund a separate buyer (<DxLink n={41} />).
+                    </p>
+                    {paidPurchases.length > 0 && (
+                      <p className="text-muted">
+                        Paying a third party is shown on the buying side: <a className="underline" href="#buying">the CoinMarketCap purchase below</a> settled on chain.
+                      </p>
+                    )}
+                  </div>
                 )}
                 <div className="mt-2">
                   <TxLink tx={s.tx} />
@@ -210,24 +242,27 @@ export default function ProofPage() {
               </div>
             ))}
             {selftest && (
-              <div className="rounded-lg border border-line bg-panel p-4 text-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-semibold">B402 self-test (verify only)</span>
+              <details className="group self-start rounded-lg border border-line bg-panel p-4 text-sm">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold">
+                    <span className="mr-1 inline-block text-muted transition group-open:rotate-90">›</span>
+                    B402 self-test (verify only)
+                  </span>
                   <span className={selftest.isValid ? "text-go" : "text-block"}>{selftest.isValid ? "isValid: true" : `invalid: ${selftest.invalidReason ?? "unknown"}`}</span>
-                </div>
+                </summary>
                 <p className="mt-2 text-muted">
                   A {selftest.amount} {selftest.token} authorization signed by the Agentic Wallet for {new URL(selftest.resource).pathname}, sent to B402 Verify and never
                   settled, so nothing moved. It proves the onboarded payTo ({shortHash(selftest.payTo)}) is the wallet.
                 </p>
                 <p className="mt-1 text-muted">{utc(selftest.at)}</p>
-              </div>
+              </details>
             )}
           </div>
         </section>
       )}
 
       {x402.purchases.length > 0 && (
-        <section className="space-y-2">
+        <section id="buying" className="scroll-mt-4 space-y-2">
           <h2 className="font-semibold">Paying for data over x402</h2>
           <p className="text-sm text-muted">
             Paid calls to other agents through <span className="font-mono">baw x402-payment</span>, capped per call and per day. {x402.dryRuns} further dry runs stopped
@@ -284,7 +319,7 @@ export default function ProofPage() {
       )}
 
       {identity && (
-        <section className="space-y-2">
+        <section id="identity" className="scroll-mt-4 space-y-2">
           <h2 className="font-semibold">Agent identity (ERC-8004)</h2>
           <div className="rounded-lg border border-line bg-panel p-4 text-sm">
             <p className="text-2xl font-semibold">
