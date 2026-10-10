@@ -21,7 +21,7 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 | 3 | Guarded mainnet fills via `baw` with receipts | done |
 | 4 | Web desk: radar, Truth Cards, proof ledger, DX log | done |
 | 5 | Agentic Wallet and BNB Agent Studio integrations: CI (5.1), gated wallet trading (5.2), the x402 buyer (5.3), the B402 seller with ERC-8004 identity (5.4), the MCP server, Studio agent and first paid sale (5.5), and all of it on `/proof` (5.6) | done |
-| 6 | Ship: site polish and the [DX report](docs/DX_REPORT.md) done; demo video and submission on 2026-10-10 | in progress |
+| 6 | Ship: site polish, [DX report](docs/DX_REPORT.md), demo video and submission | done |
 
 ## For judges
 
@@ -32,7 +32,7 @@ Built for **BNB Hack: Tokenized Stocks Edition** (BSC mainnet, spot only).
 3. Open [`/proof`](https://executable-gap-desk.vercel.app/proof): mainnet fills, refusals, x402 payments, the B402 sale and the ERC-8004 identity, each with its BscScan link.
 4. Run `curl -i https://executable-gap-desk.vercel.app/x402/gap/NVDA` to see the gate for sale over x402 (HTTP 402 with U and USD1 payment requirements).
 
-**Demo video:** will be linked here with the submission on 2026-10-10.
+**Demo video:** [watch on Google Drive](https://drive.google.com/file/d/1DkHdbPjPWkYgoPI7ddGwKg2UbcT6Njj3/view?usp=sharing).
 
 Each line below is one integration and where to see it working. Every on-chain claim links to BscScan from [`/proof`](https://executable-gap-desk.vercel.app/proof).
 
